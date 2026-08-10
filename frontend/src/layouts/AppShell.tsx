@@ -16,7 +16,7 @@ export function AppShell({
   navigation,
   onNavigate
 }: AppShellProps) {
-  const activeLabel = navigation.find((item) => item.key === activePage)?.label ?? 'Dashboard';
+  const activeLabel = navigation.find((item) => item.key === activePage)?.label ?? 'Página Inicial';
 
   return (
     <div className="app-shell">
@@ -25,7 +25,7 @@ export function AppShell({
           <img className="brand-logo" src={linkaiLogoUrl} alt="LinkAI Engenharia" />
         </div>
 
-        <div className="nav-section-title">Navegação</div>
+        <div className="nav-section-title">Menu</div>
 
         <nav className="nav-list" aria-label="Navegação principal">
           {navigation.map((item) => {
@@ -40,7 +40,9 @@ export function AppShell({
                 onClick={() => onNavigate(item.key)}
                 type="button"
               >
-                <Icon size={18} />
+                <span className="nav-icon">
+                  <Icon size={18} />
+                </span>
                 <span>{item.label}</span>
               </button>
             );

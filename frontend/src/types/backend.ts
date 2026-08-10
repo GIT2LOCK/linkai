@@ -4,16 +4,37 @@ export interface CommandResult<T> {
   error: string | null;
 }
 
-export interface DashboardMetrics {
-  pdf_count: number;
-  processed_count: number;
-  error_count: number;
-  spreadsheet_count: number;
-  last_processing: string | null;
-  last_sync: string | null;
-  average_time_seconds: number | null;
-  supabase_status: string;
-  used_space_bytes: number;
+export interface WorkUpdate {
+  title: string;
+  category: string;
+  summary: string;
+  meta: string;
+  progress: number | null;
+  source_url: string;
+}
+
+export interface MarketQuote {
+  symbol: string;
+  name: string;
+  price: number | null;
+  change_percent: number | null;
+  currency: string;
+  source: string;
+}
+
+export interface CurrencyQuote {
+  code: string;
+  name: string;
+  bid: number | null;
+  change_percent: number | null;
+  source: string;
+}
+
+export interface HomeOverview {
+  updatedAt: string;
+  workUpdates: WorkUpdate[];
+  marketQuotes: MarketQuote[];
+  currencyQuotes: CurrencyQuote[];
 }
 
 export type ProcessingSource = 'supabase' | 'folder' | 'files';

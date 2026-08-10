@@ -1,18 +1,18 @@
 import { useMemo, useState } from 'react';
 import {
-  BarChart3,
   Bot,
   Cloud,
   FileArchive,
   FileSpreadsheet,
   Files,
   Home,
+  LineChart,
   Play,
   ScrollText,
   Settings
 } from 'lucide-react';
 import { AppShell } from './layouts/AppShell';
-import { DashboardPage } from './pages/DashboardPage';
+import { HomePage } from './pages/HomePage';
 import { ProcessPdfsPage } from './pages/ProcessPdfsPage';
 import { LaunchNotesPage } from './pages/LaunchNotesPage';
 import { SpreadsheetsPage } from './pages/SpreadsheetsPage';
@@ -25,7 +25,7 @@ import { LogsPage } from './pages/LogsPage';
 import type { NavigationItem, PageKey } from './types/navigation';
 
 const navigation: NavigationItem[] = [
-  { key: 'dashboard', label: 'Dashboard', icon: Home },
+  { key: 'home', label: 'Página Inicial', icon: Home },
   { key: 'processar-pdfs', label: 'Processar PDFs', icon: FileArchive },
   { key: 'lancar-notas', label: 'Lançar Notas', icon: Play },
   { key: 'planilhas', label: 'Planilhas', icon: FileSpreadsheet },
@@ -34,11 +34,11 @@ const navigation: NavigationItem[] = [
   { key: 'ia', label: 'Inteligência Artificial', icon: Bot },
   { key: 'historico', label: 'Histórico', icon: ScrollText },
   { key: 'configuracoes', label: 'Configurações', icon: Settings },
-  { key: 'logs', label: 'Logs', icon: BarChart3 }
+  { key: 'logs', label: 'Logs', icon: LineChart }
 ];
 
 export function App() {
-  const [activePage, setActivePage] = useState<PageKey>('dashboard');
+  const [activePage, setActivePage] = useState<PageKey>('home');
 
   const page = useMemo(() => {
     switch (activePage) {
@@ -61,7 +61,7 @@ export function App() {
       case 'logs':
         return <LogsPage />;
       default:
-        return <DashboardPage />;
+        return <HomePage />;
     }
   }, [activePage]);
 

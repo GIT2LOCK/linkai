@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 
 export type PageKey =
-  | 'dashboard'
+  | 'home'
   | 'processar-pdfs'
   | 'lancar-notas'
   | 'planilhas'
