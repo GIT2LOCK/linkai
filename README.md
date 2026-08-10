@@ -131,7 +131,6 @@ Responsabilidades:
 - Expor comandos internos para a interface.
 - Orquestrar automação Lumina.
 - Orquestrar processamento de PDFs.
-- Consultar dados da Página Inicial, incluindo obras, mercado e câmbio.
 - Listar planilhas geradas.
 - Ler logs.
 - Testar conexão com Supabase.
@@ -143,7 +142,6 @@ Interface desktop/web do LinkAI.
 
 Responsabilidades:
 
-- Página Inicial.
 - Processamento de PDFs.
 - Lançamento de notas no Lumina.
 - Planilhas geradas.
@@ -377,22 +375,9 @@ A interface atual possui:
 - Paleta preta, cinza e rosa.
 - Logo oficial da LinkAI.
 - Menu lateral com navegação principal.
-- Cards de Página Inicial com obras, mercado financeiro e câmbio.
 - Telas para PDFs, Lumina, Planilhas, Supabase, Arquivos, IA, Histórico, Configurações e Logs.
 
 ## Telas
-
-### Página Inicial
-
-Mostra:
-
-- Principais atualizações de obras da Linka Engenharia.
-- Cards com obras concluídas e obras em andamento.
-- Cotações de construtoras e incorporadoras listadas na B3.
-- Variação percentual dos principais papéis do setor.
-- Cotação das principais moedas do mundo contra o real.
-- Cotação de BTC e ETH contra o real.
-- Atualização em tempo real quando a API externa estiver disponível.
 
 ### Processar PDFs
 

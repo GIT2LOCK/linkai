@@ -5,14 +5,12 @@ import {
   FileArchive,
   FileSpreadsheet,
   Files,
-  Home,
   LineChart,
   Play,
   ScrollText,
   Settings
 } from 'lucide-react';
 import { AppShell } from './layouts/AppShell';
-import { HomePage } from './pages/HomePage';
 import { ProcessPdfsPage } from './pages/ProcessPdfsPage';
 import { LaunchNotesPage } from './pages/LaunchNotesPage';
 import { SpreadsheetsPage } from './pages/SpreadsheetsPage';
@@ -25,7 +23,6 @@ import { LogsPage } from './pages/LogsPage';
 import type { NavigationItem, PageKey } from './types/navigation';
 
 const navigation: NavigationItem[] = [
-  { key: 'home', label: 'Página Inicial', icon: Home },
   { key: 'processar-pdfs', label: 'Processar PDFs', icon: FileArchive },
   { key: 'lancar-notas', label: 'Lançar Notas', icon: Play },
   { key: 'planilhas', label: 'Planilhas', icon: FileSpreadsheet },
@@ -38,7 +35,7 @@ const navigation: NavigationItem[] = [
 ];
 
 export function App() {
-  const [activePage, setActivePage] = useState<PageKey>('home');
+  const [activePage, setActivePage] = useState<PageKey>('processar-pdfs');
 
   const page = useMemo(() => {
     switch (activePage) {
@@ -61,7 +58,7 @@ export function App() {
       case 'logs':
         return <LogsPage />;
       default:
-        return <HomePage />;
+        return <ProcessPdfsPage />;
     }
   }, [activePage]);
 

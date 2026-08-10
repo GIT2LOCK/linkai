@@ -16,7 +16,7 @@ export function AppShell({
   navigation,
   onNavigate
 }: AppShellProps) {
-  const activeLabel = navigation.find((item) => item.key === activePage)?.label ?? 'Página Inicial';
+  const activeLabel = navigation.find((item) => item.key === activePage)?.label ?? 'Processar PDFs';
 
   return (
     <div className="app-shell">
