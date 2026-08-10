@@ -91,6 +91,7 @@ class ProcessingUiRegistry:
         file_records: list[dict[str, Any]],
         source: str,
         download_path: Path | None,
+        download_label: str | None = None,
     ) -> dict[str, Any]:
         """Persist a completed processing response and return the enriched response."""
         state = self._load()
@@ -98,16 +99,17 @@ class ProcessingUiRegistry:
         session_id = uuid4().hex
         summary = dict(response.get("summary") or {})
         status = self._session_status(summary)
+        shown_download_path = download_label or (str(download_path) if download_path else None)
         enriched_response = deepcopy(response)
         enriched_response["sessionId"] = session_id
         enriched_response["processedAt"] = processed_at
-        enriched_response["downloadPath"] = str(download_path) if download_path else None
+        enriched_response["downloadPath"] = shown_download_path
 
         session = {
             "sessionId": session_id,
             "processedAt": processed_at,
             "source": source,
-            "downloadPath": str(download_path) if download_path else None,
+            "downloadPath": shown_download_path,
             "listed": int(summary.get("listed") or 0),
             "processed": int(summary.get("processed") or 0),
             "ignored": int(summary.get("ignored") or 0),

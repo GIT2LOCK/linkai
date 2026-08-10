@@ -8,13 +8,35 @@ import { SectionHeader } from '../components/SectionHeader';
 import { ToggleRow } from '../components/ToggleRow';
 import { callBackend, isTauriRuntime, uploadLocalPdfs } from '../services/backend';
 import type {
-  DefaultDownloadPathResponse,
   ExcelMode,
   ProcessingOptions,
   ProcessingResponse,
   ProcessingSource
 } from '../types/backend';
 import { useAsyncAction } from '../hooks/useAsyncAction';
+
+interface BrowserDirectoryHandle {
+  name: string;
+  getFileHandle: (
+    name: string,
+    options: { create: boolean }
+  ) => Promise<BrowserFileHandle>;
+}
+
+interface BrowserFileHandle {
+  createWritable: () => Promise<BrowserWritableFileStream>;
+}
+
+interface BrowserWritableFileStream {
+  write: (data: Blob) => Promise<void>;
+  close: () => Promise<void>;
+}
+
+declare global {
+  interface Window {
+    showDirectoryPicker?: () => Promise<BrowserDirectoryHandle>;
+  }
+}
 
 const columns = [
   { key: 'name', label: 'Nome' },
@@ -62,10 +84,16 @@ export function ProcessPdfsPage() {
   const folderInputRef = useRef<HTMLInputElement>(null);
   const [source, setSource] = useState<ProcessingSource>('supabase');
   const [downloadPath, setDownloadPath] = useState<string | null>(null);
+  const [downloadPathLabel, setDownloadPathLabel] = useState<string | null>(null);
+  const [browserDownloadDirectory, setBrowserDownloadDirectory] =
+    useState<BrowserDirectoryHandle | null>(null);
   const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
+  const [selectedBrowserFiles, setSelectedBrowserFiles] = useState<File[]>([]);
   const [selectionError, setSelectionError] = useState<string | null>(null);
   const [persistedResponse, setPersistedResponse] = useState<ProcessingResponse | null>(null);
-  const [options, setOptions] = useState<Omit<ProcessingOptions, 'source' | 'paths' | 'downloadPath'>>({
+  const [options, setOptions] = useState<
+    Omit<ProcessingOptions, 'source' | 'paths' | 'downloadPath' | 'downloadPathLabel'>
+  >({
     generateExcel: true,
     downloadPdfsLocally: true,
     ignoreDuplicates: true,
@@ -94,8 +122,12 @@ export function ProcessPdfsPage() {
 
         setPersistedResponse(lastProcessing);
 
-        if (lastProcessing.downloadPath) {
+        if (
+          lastProcessing.downloadPath &&
+          !lastProcessing.downloadPath.startsWith('Pasta escolhida no navegador:')
+        ) {
           setDownloadPath(lastProcessing.downloadPath);
+          setDownloadPathLabel(lastProcessing.downloadPath);
         }
       })
       .catch(() => undefined);
@@ -106,9 +138,10 @@ export function ProcessPdfsPage() {
   }, []);
 
   const rows = action.data?.rows ?? persistedResponse?.rows ?? [];
+  const selectedDownloadLabel = downloadPathLabel ?? downloadPath;
 
   async function runProcessing() {
-    if (options.downloadPdfsLocally && !downloadPath) {
+    if (options.downloadPdfsLocally && !selectedDownloadLabel) {
       setSelectionError('Escolha o local padrão de download antes de processar.');
       return;
     }
@@ -120,12 +153,22 @@ export function ProcessPdfsPage() {
 
     setSelectionError(null);
 
+    if (options.downloadPdfsLocally && browserDownloadDirectory && selectedBrowserFiles.length > 0) {
+      try {
+        await copyBrowserFilesToDirectory(selectedBrowserFiles, browserDownloadDirectory);
+      } catch {
+        setSelectionError('Não foi possível salvar os PDFs na pasta escolhida pelo navegador.');
+        return;
+      }
+    }
+
     try {
       const result = await action.run({
         ...options,
         source,
         paths: selectedPaths,
-        downloadPath
+        downloadPath,
+        downloadPathLabel: selectedDownloadLabel
       });
       setPersistedResponse(result);
     } catch {
@@ -146,11 +189,20 @@ export function ProcessPdfsPage() {
     setSelectionError(null);
 
     if (!isTauriRuntime()) {
+      if (!window.showDirectoryPicker) {
+        setSelectionError(
+          'Este navegador não permite escolher pasta de destino. Abra pelo app Tauri ou use Chrome/Edge atualizado.'
+        );
+        return;
+      }
+
       try {
-        const fallback = await callBackend<DefaultDownloadPathResponse>('downloads.default_path');
-        setDownloadPath(fallback.path);
-      } catch {
-        setSelectionError('Não foi possível carregar a pasta padrão da API local.');
+        const directory = await window.showDirectoryPicker();
+        setBrowserDownloadDirectory(directory);
+        setDownloadPath(null);
+        setDownloadPathLabel(`Pasta escolhida no navegador: ${directory.name}`);
+      } catch (error) {
+        setSelectionError(selectionDialogError(error));
       }
 
       return;
@@ -163,7 +215,9 @@ export function ProcessPdfsPage() {
       });
 
       if (typeof selected === 'string') {
+        setBrowserDownloadDirectory(null);
         setDownloadPath(selected);
+        setDownloadPathLabel(selected);
       }
     } catch (error) {
       setSelectionError(selectionDialogError(error));
@@ -185,6 +239,7 @@ export function ProcessPdfsPage() {
       });
 
       if (typeof selected === 'string') {
+        setSelectedBrowserFiles([]);
         setSelectedPaths([selected]);
         setSource('folder');
       }
@@ -209,9 +264,11 @@ export function ProcessPdfsPage() {
       });
 
       if (Array.isArray(selected)) {
+        setSelectedBrowserFiles([]);
         setSelectedPaths(selected);
         setSource('files');
       } else if (typeof selected === 'string') {
+        setSelectedBrowserFiles([]);
         setSelectedPaths([selected]);
         setSource('files');
       }
@@ -246,6 +303,7 @@ export function ProcessPdfsPage() {
         return;
       }
 
+      setSelectedBrowserFiles(pdfFiles);
       setSelectedPaths(uploaded.paths);
       setSource(nextSource);
       setSelectionError(null);
@@ -255,6 +313,7 @@ export function ProcessPdfsPage() {
   }
 
   function clearSelection() {
+    setSelectedBrowserFiles([]);
     setSelectedPaths([]);
     setSelectionError(null);
   }
@@ -268,6 +327,7 @@ export function ProcessPdfsPage() {
       .filter((path): path is string => Boolean(path));
 
     if (paths.length > 0) {
+      setSelectedBrowserFiles([]);
       setSelectedPaths(paths);
       setSource('files');
       setSelectionError(null);
@@ -312,7 +372,7 @@ export function ProcessPdfsPage() {
       <div className="download-location-panel">
         <div>
           <strong>Local padrão de download</strong>
-          <span>{downloadPath ?? 'Escolha uma pasta antes de processar.'}</span>
+          <span>{selectedDownloadLabel ?? 'Escolha uma pasta antes de processar.'}</span>
         </div>
         <button className="button secondary" onClick={selectDownloadPath} type="button">
           <Download size={16} />
@@ -478,6 +538,18 @@ function SourceOption({ active, icon: Icon, label, onClick }: SourceOptionProps)
       <span>{label}</span>
     </button>
   );
+}
+
+async function copyBrowserFilesToDirectory(
+  files: File[],
+  directory: BrowserDirectoryHandle
+) {
+  for (const file of files) {
+    const fileHandle = await directory.getFileHandle(file.name, { create: true });
+    const writable = await fileHandle.createWritable();
+    await writable.write(file);
+    await writable.close();
+  }
 }
 
 function formatBytes(value: number | null) {

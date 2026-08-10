@@ -55,6 +55,7 @@ class ProcessingOptions:
     source: ProcessingSource
     paths: list[str] = field(default_factory=list)
     download_path: str | None = None
+    download_path_label: str | None = None
     generate_excel: bool = True
     download_pdfs_locally: bool = True
     ignore_duplicates: bool = True
@@ -73,6 +74,11 @@ class ProcessingOptions:
             download_path=(
                 str(payload["downloadPath"]).strip()
                 if payload.get("downloadPath")
+                else None
+            ),
+            download_path_label=(
+                str(payload["downloadPathLabel"]).strip()
+                if payload.get("downloadPathLabel")
                 else None
             ),
             generate_excel=bool(payload.get("generateExcel", True)),

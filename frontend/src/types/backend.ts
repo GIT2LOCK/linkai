@@ -24,6 +24,7 @@ export interface ProcessingOptions {
   source: ProcessingSource;
   paths: string[];
   downloadPath: string | null;
+  downloadPathLabel?: string | null;
   generateExcel: boolean;
   downloadPdfsLocally: boolean;
   ignoreDuplicates: boolean;

@@ -83,6 +83,7 @@ class DocumentProcessingService:
             file_records=[],
             source=options.source,
             download_path=download_dir,
+            download_label=options.download_path_label,
         )
 
     def _process_local(
@@ -177,6 +178,7 @@ class DocumentProcessingService:
             file_records=file_records,
             source=options.source,
             download_path=download_dir,
+            download_label=options.download_path_label,
         )
 
     def _resolve_download_dir(self, options: ProcessingOptions) -> Path:

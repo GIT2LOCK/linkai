@@ -44,6 +44,7 @@ class BaseParser(ABC):
         "competencia": ("competencia", "mes de competencia"),
         "razao_social": ("razao social", "nome empresarial"),
         "nome_fantasia": ("nome fantasia",),
+        "cnae": ("cnae", "codigo cnae", "cnae fiscal"),
         "municipio": ("municipio", "cidade"),
         "uf": ("uf", "estado"),
         "codigo_municipio": ("codigo municipio", "cod municipio"),
@@ -174,6 +175,11 @@ class BaseParser(ABC):
             values,
             "xfant",
             "nomefantasia",
+        )
+        nota.outros_campos["cnae"] = nota.outros_campos.get("cnae") or self._first_xml(
+            values,
+            "cnae",
+            "cnaefiscal",
         )
         nota.codigo_servico = nota.codigo_servico or self._first_xml(
             values,
