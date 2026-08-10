@@ -39,12 +39,16 @@ class DocumentDetector:
             "danfe",
             "chave de acesso",
             "protocolo de autorizacao",
+            "nfeproc",
+            "infnfe",
         ),
         DocumentType.NFSE: (
             "nota fiscal de servicos eletronica",
             "nfs-e",
             "codigo de verificacao",
             "prestador de servicos",
+            "compnfse",
+            "infnfse",
         ),
         DocumentType.NFCE: (
             "nota fiscal de consumidor eletronica",
@@ -55,11 +59,15 @@ class DocumentDetector:
             "conhecimento de transporte eletronico",
             "ct-e",
             "dacte",
+            "cteproc",
+            "infcte",
         ),
         DocumentType.MDFE: (
             "manifesto eletronico de documentos fiscais",
             "mdf-e",
             "damdfe",
+            "mdfeproc",
+            "infmdfe",
         ),
         DocumentType.RECIBO: (
             "recibo",

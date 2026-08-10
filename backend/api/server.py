@@ -53,18 +53,19 @@ def invoke_backend(request: InvokeRequest) -> dict[str, Any]:
     return result.to_dict()
 
 
-@app.post("/uploads/pdfs")
-async def upload_pdfs(files: list[UploadFile] = File(...)) -> dict[str, Any]:
-    """Receive PDFs selected in the browser and store them as local temp files."""
+@app.post("/uploads/documents")
+async def upload_documents(files: list[UploadFile] = File(...)) -> dict[str, Any]:
+    """Receive PDF/XML documents selected in the browser as local temp files."""
     upload_dir = PROJECT_ROOT / "output" / "temp" / "uploads" / uuid.uuid4().hex
     upload_dir.mkdir(parents=True, exist_ok=True)
 
     saved_paths: list[str] = []
+    allowed_extensions = {".pdf", ".xml"}
 
     for uploaded_file in files:
-        original_name = Path(uploaded_file.filename or "documento.pdf").name
+        original_name = Path(uploaded_file.filename or "documento").name
 
-        if Path(original_name).suffix.lower() != ".pdf":
+        if Path(original_name).suffix.lower() not in allowed_extensions:
             continue
 
         destination = upload_dir / original_name
@@ -78,3 +79,9 @@ async def upload_pdfs(files: list[UploadFile] = File(...)) -> dict[str, Any]:
         "paths": saved_paths,
         "count": len(saved_paths),
     }
+
+
+@app.post("/uploads/pdfs")
+async def upload_pdfs(files: list[UploadFile] = File(...)) -> dict[str, Any]:
+    """Backward-compatible upload endpoint for older frontend builds."""
+    return await upload_documents(files)

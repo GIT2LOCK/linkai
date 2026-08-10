@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { DataTable } from '../components/DataTable';
 import { SectionHeader } from '../components/SectionHeader';
 import { ToggleRow } from '../components/ToggleRow';
-import { callBackend, isTauriRuntime, uploadLocalPdfs } from '../services/backend';
+import { callBackend, isTauriRuntime, uploadLocalDocuments } from '../services/backend';
 import type {
   ExcelMode,
   ProcessingOptions,
@@ -147,7 +147,7 @@ export function ProcessPdfsPage() {
     }
 
     if (source !== 'supabase' && selectedPaths.length === 0) {
-      setSelectionError('Selecione uma pasta ou pelo menos um PDF antes de processar.');
+      setSelectionError('Selecione uma pasta ou pelo menos um PDF/XML antes de processar.');
       return;
     }
 
@@ -157,7 +157,7 @@ export function ProcessPdfsPage() {
       try {
         await copyBrowserFilesToDirectory(selectedBrowserFiles, browserDownloadDirectory);
       } catch {
-        setSelectionError('Não foi possível salvar os PDFs na pasta escolhida pelo navegador.');
+        setSelectionError('Não foi possível salvar os documentos na pasta escolhida pelo navegador.');
         return;
       }
     }
@@ -260,7 +260,7 @@ export function ProcessPdfsPage() {
       const selected = await open({
         directory: false,
         multiple: true,
-        filters: [{ name: 'PDF', extensions: ['pdf'] }]
+        filters: [{ name: 'Documentos fiscais', extensions: ['pdf', 'xml'] }]
       });
 
       if (Array.isArray(selected)) {
@@ -288,22 +288,22 @@ export function ProcessPdfsPage() {
   }
 
   async function uploadBrowserSelection(files: File[], nextSource: ProcessingSource) {
-    const pdfFiles = files.filter((file) => file.name.toLowerCase().endsWith('.pdf'));
+    const documentFiles = files.filter((file) => isSupportedFiscalDocument(file.name));
 
-    if (pdfFiles.length === 0) {
-      setSelectionError('Nenhum PDF foi encontrado na seleção.');
+    if (documentFiles.length === 0) {
+      setSelectionError('Nenhum PDF ou XML foi encontrado na seleção.');
       return;
     }
 
     try {
-      const uploaded = await uploadLocalPdfs(pdfFiles);
+      const uploaded = await uploadLocalDocuments(documentFiles);
 
       if (uploaded.paths.length === 0) {
-        setSelectionError('Nenhum PDF válido foi enviado para processamento.');
+        setSelectionError('Nenhum PDF ou XML válido foi enviado para processamento.');
         return;
       }
 
-      setSelectedBrowserFiles(pdfFiles);
+      setSelectedBrowserFiles(documentFiles);
       setSelectedPaths(uploaded.paths);
       setSource(nextSource);
       setSelectionError(null);
@@ -340,7 +340,7 @@ export function ProcessPdfsPage() {
   return (
     <div className="page-stack">
       <input
-        accept="application/pdf,.pdf"
+        accept="application/pdf,application/xml,text/xml,.pdf,.xml"
         className="hidden-file-input"
         multiple
         onChange={handleBrowserFileSelection}
@@ -415,7 +415,7 @@ export function ProcessPdfsPage() {
             Selecionar pasta
           </button>
           <button className="button secondary" onClick={selectFiles} type="button">
-            Selecionar PDFs
+            Selecionar arquivos
           </button>
           {selectedPaths.length > 0 ? (
             <button className="button ghost" onClick={clearSelection} type="button">
@@ -517,7 +517,7 @@ export function ProcessPdfsPage() {
 
       <DataTable
         columns={columns}
-        emptyLabel="Nenhum PDF processado ainda."
+        emptyLabel="Nenhum documento processado ainda."
         rows={rows as unknown as Record<string, unknown>[]}
       />
     </div>
@@ -572,15 +572,15 @@ function selectionTitle(source: ProcessingSource, count: number) {
   }
 
   if (count > 0) {
-    return source === 'folder' ? 'Pasta selecionada' : 'PDFs selecionados';
+    return source === 'folder' ? 'Pasta selecionada' : 'Arquivos selecionados';
   }
 
-  return source === 'folder' ? 'Selecione uma pasta' : 'Selecione PDFs';
+  return source === 'folder' ? 'Selecione uma pasta' : 'Selecione arquivos';
 }
 
 function selectionDescription(source: ProcessingSource, paths: string[]) {
   if (source === 'supabase') {
-    return 'Os PDFs serão buscados automaticamente no bucket privado configurado.';
+    return 'Os documentos serão buscados automaticamente no bucket privado configurado.';
   }
 
   if (paths.length === 0) {
@@ -591,7 +591,12 @@ function selectionDescription(source: ProcessingSource, paths: string[]) {
     return displayPath(paths[0]);
   }
 
-  return paths.length === 1 ? displayPath(paths[0]) : `${paths.length} PDFs selecionados.`;
+  return paths.length === 1 ? displayPath(paths[0]) : `${paths.length} arquivos selecionados.`;
+}
+
+function isSupportedFiscalDocument(fileName: string) {
+  const normalized = fileName.toLowerCase();
+  return normalized.endsWith('.pdf') || normalized.endsWith('.xml');
 }
 
 function selectionDialogError(error: unknown) {
@@ -612,8 +617,8 @@ function uploadErrorMessage(error: unknown) {
   }
 
   if (message.includes('Failed to fetch') || message.includes('unavailable')) {
-    return 'Não foi possível enviar os PDFs para a API local. Verifique se o backend está rodando na porta 8765.';
+    return 'Não foi possível enviar os documentos para a API local. Verifique se o backend está rodando na porta 8765.';
   }
 
-  return 'Não foi possível enviar os PDFs para a API local.';
+  return 'Não foi possível enviar os documentos para a API local.';
 }

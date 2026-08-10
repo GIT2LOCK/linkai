@@ -12,7 +12,7 @@ export interface OperatorProfile {
   source: 'supabase' | 'fallback';
 }
 
-export interface UploadedPdfsResponse {
+export interface UploadedDocumentsResponse {
   paths: string[];
   count: number;
 }

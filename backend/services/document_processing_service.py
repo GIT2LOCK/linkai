@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import shutil
 import time
+import re
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
@@ -92,10 +93,18 @@ class DocumentProcessingService:
         download_dir: Path,
     ) -> dict[str, Any]:
         started = time.perf_counter()
-        pdf_paths = self._local_source.from_paths(
+        document_paths = self._local_source.documents_from_paths(
             options.paths,
             recursive=options.process_subfolders,
         )
+        pdf_paths = [
+            path for path in document_paths if path.suffix.lower() == ".pdf"
+        ]
+        xml_paths = [
+            path for path in document_paths if path.suffix.lower() == ".xml"
+        ]
+        xml_index = self._build_xml_index(xml_paths) if options.detect_xml else {}
+        matched_xmls: set[Path] = set()
         notas: list[NotaFiscal] = []
         rows: list[dict[str, Any]] = []
         file_records: list[dict[str, Any]] = []
@@ -120,31 +129,68 @@ class DocumentProcessingService:
                 downloaded = False
 
                 if options.download_pdfs_locally:
-                    working_path, downloaded = self._copy_pdf_to_download_dir(
+                    working_path, downloaded = self._copy_document_to_download_dir(
                         source_path,
                         download_dir,
                         source_hash,
                     )
 
                 pdf = self._pdf_reader.read(working_path)
-                nota = self._parser_manager.parse(pdf, remote_path=None)
+                xml_source_path = self._find_xml_for_pdf(
+                    source_path,
+                    pdf.text,
+                    xml_index,
+                )
+                xml_working_path = None
+                xml_text = None
+
+                if xml_source_path:
+                    matched_xmls.add(xml_source_path.resolve())
+                    xml_working_path = xml_source_path
+
+                    if options.download_pdfs_locally:
+                        xml_working_path, _ = self._copy_document_to_download_dir(
+                            xml_source_path,
+                            download_dir,
+                            self._safe_sha256(xml_source_path),
+                        )
+
+                    xml_text = self._read_xml(xml_working_path)
+
+                nota = self._parser_manager.parse(
+                    pdf,
+                    remote_path=None,
+                    xml_text=xml_text,
+                    xml_local_path=xml_working_path,
+                )
                 nota.status_processamento = "success"
                 nota.caminho_local = str(working_path)
+                nota.caminho_xml_local = str(xml_working_path) if xml_working_path else None
                 notas.append(nota)
 
-                row = self._row_from_nota(nota, options.source, "success")
+                row = self._row_from_nota(nota, options.source, "success", "PDF")
                 row["originPath"] = str(source_path)
                 row["path"] = str(working_path)
                 row["downloadedPath"] = str(working_path) if options.download_pdfs_locally else None
+                row["xmlPath"] = str(xml_working_path) if xml_working_path else None
                 row["downloaded"] = options.download_pdfs_locally and downloaded
                 rows.append(row)
                 file_records.append(
                     self._file_record_from_row(row, source_path, working_path)
                 )
+                if xml_working_path:
+                    file_records.append(
+                        self._xml_file_record(
+                            xml_source_path or xml_working_path,
+                            xml_working_path,
+                            row,
+                        )
+                    )
                 self._logger.info(
-                    "PDF processed: %s | hash=%s | destination=%s",
+                    "PDF processed: %s | hash=%s | xml=%s | destination=%s",
                     source_path,
                     row.get("hash"),
+                    xml_working_path,
                     working_path,
                 )
             except Exception as exc:
@@ -156,6 +202,63 @@ class DocumentProcessingService:
                 )
                 self._logger.exception("PDF failed and will be skipped: %s", source_path)
 
+        for source_path in xml_paths:
+            if source_path.resolve() in matched_xmls:
+                continue
+
+            source_hash = self._safe_sha256(source_path)
+
+            if options.ignore_duplicates and self._registry.has_success_hash(source_hash):
+                duplicated += 1
+                row = self._duplicate_row(source_path, source_hash, options.source, "XML")
+                rows.append(row)
+                file_records.append(
+                    self._file_record_from_row(row, source_path, source_path)
+                )
+                self._logger.info("XML duplicated and ignored: %s", source_path)
+                continue
+
+            try:
+                working_path = source_path
+                downloaded = False
+
+                if options.download_pdfs_locally:
+                    working_path, downloaded = self._copy_document_to_download_dir(
+                        source_path,
+                        download_dir,
+                        source_hash,
+                    )
+
+                nota = self._parser_manager.parse_xml(working_path)
+                nota.status_processamento = "success"
+                nota.caminho_xml_local = str(working_path)
+                notas.append(nota)
+
+                row = self._row_from_nota(nota, options.source, "success", "XML")
+                row["originPath"] = str(source_path)
+                row["path"] = str(working_path)
+                row["downloadedPath"] = str(working_path) if options.download_pdfs_locally else None
+                row["xmlPath"] = str(working_path)
+                row["downloaded"] = options.download_pdfs_locally and downloaded
+                rows.append(row)
+                file_records.append(
+                    self._file_record_from_row(row, source_path, working_path)
+                )
+                self._logger.info(
+                    "XML processed: %s | hash=%s | destination=%s",
+                    source_path,
+                    row.get("hash"),
+                    working_path,
+                )
+            except Exception as exc:
+                failed += 1
+                row = self._error_row(source_path, source_hash, options.source, str(exc), "XML")
+                rows.append(row)
+                file_records.append(
+                    self._file_record_from_row(row, source_path, source_path)
+                )
+                self._logger.exception("XML failed and will be skipped: %s", source_path)
+
         if options.generate_excel and notas:
             writer = ExcelWriter(PROJECT_ROOT / "output" / "excel" / "notas.xlsx")
             writer.write(notas, mode=options.excel_mode)
@@ -165,7 +268,7 @@ class DocumentProcessingService:
             "source": options.source,
             "rows": rows,
             "summary": {
-                "listed": len(pdf_paths),
+                "listed": len(document_paths),
                 "processed": len(notas),
                 "ignored": 0,
                 "failed": failed,
@@ -194,7 +297,7 @@ class DocumentProcessingService:
         download_dir.mkdir(parents=True, exist_ok=True)
         return download_dir
 
-    def _copy_pdf_to_download_dir(
+    def _copy_document_to_download_dir(
         self,
         source_path: Path,
         download_dir: Path,
@@ -247,16 +350,62 @@ class DocumentProcessingService:
         except OSError:
             return None
 
+    def _build_xml_index(self, xml_paths: list[Path]) -> dict[str, Path]:
+        index: dict[str, Path] = {}
+
+        for xml_path in xml_paths:
+            index[f"stem:{xml_path.stem.lower()}"] = xml_path
+
+            for source in (xml_path.name, self._read_xml(xml_path)):
+                key = self._extract_access_key(source)
+
+                if key:
+                    index[f"key:{key}"] = xml_path
+
+        return index
+
+    def _find_xml_for_pdf(
+        self,
+        pdf_path: Path,
+        pdf_text: str,
+        xml_index: dict[str, Path],
+    ) -> Path | None:
+        candidates = [
+            f"stem:{pdf_path.stem.lower()}",
+        ]
+        key = self._extract_access_key(pdf_path.name) or self._extract_access_key(pdf_text)
+
+        if key:
+            candidates.append(f"key:{key}")
+
+        for candidate in candidates:
+            xml_path = xml_index.get(candidate)
+
+            if xml_path:
+                return xml_path
+
+        return None
+
+    @staticmethod
+    def _read_xml(path: Path) -> str:
+        return path.read_text(encoding="utf-8", errors="ignore")
+
+    @staticmethod
+    def _extract_access_key(value: str) -> str | None:
+        match = re.search(r"\d{44}", re.sub(r"\D", "", value))
+        return match.group(0) if match else None
+
     @staticmethod
     def _row_from_nota(
         nota: NotaFiscal,
         source: str,
         status: str,
+        file_type: str,
     ) -> dict[str, Any]:
         return {
             "name": nota.arquivo,
-            "type": "PDF",
-            "pageCount": nota.quantidade_paginas,
+            "type": file_type,
+            "pageCount": nota.quantidade_paginas if file_type == "PDF" else None,
             "sizeBytes": nota.tamanho_bytes,
             "status": status,
             "source": source,
@@ -272,10 +421,12 @@ class DocumentProcessingService:
         path: Path,
         sha256: str | None,
         source: str,
+        file_type: str | None = None,
     ) -> dict[str, Any]:
+        document_type = file_type or DocumentProcessingService._file_type(path)
         return {
             "name": path.name,
-            "type": "PDF",
+            "type": document_type,
             "pageCount": None,
             "sizeBytes": path.stat().st_size if path.is_file() else None,
             "status": "duplicated",
@@ -297,10 +448,12 @@ class DocumentProcessingService:
         sha256: str | None,
         source: str,
         error: str,
+        file_type: str | None = None,
     ) -> dict[str, Any]:
+        document_type = file_type or DocumentProcessingService._file_type(path)
         return {
             "name": path.name,
-            "type": "PDF",
+            "type": document_type,
             "pageCount": None,
             "sizeBytes": path.stat().st_size if path.is_file() else None,
             "status": "error",
@@ -325,7 +478,7 @@ class DocumentProcessingService:
         return {
             "id": row.get("hash") or str(local_path),
             "name": row.get("name") or local_path.name,
-            "type": "PDF",
+            "type": row.get("type") or DocumentProcessingService._file_type(local_path),
             "path": str(local_path),
             "originPath": str(source_path),
             "sizeBytes": row.get("sizeBytes"),
@@ -345,3 +498,45 @@ class DocumentProcessingService:
                 else None
             ),
         }
+
+    @staticmethod
+    def _xml_file_record(
+        source_path: Path,
+        local_path: Path,
+        pdf_row: dict[str, Any],
+    ) -> dict[str, Any]:
+        return {
+            "id": DocumentProcessingService._safe_sha256(local_path) or str(local_path),
+            "name": local_path.name,
+            "type": "XML",
+            "path": str(local_path),
+            "originPath": str(source_path),
+            "sizeBytes": local_path.stat().st_size if local_path.is_file() else None,
+            "hash": DocumentProcessingService._safe_sha256(local_path),
+            "source": pdf_row.get("source"),
+            "documentType": pdf_row.get("documentType"),
+            "parser": pdf_row.get("parser"),
+            "pageCount": None,
+            "status": pdf_row.get("status"),
+            "error": pdf_row.get("error"),
+            "modifiedAt": (
+                time.strftime(
+                    "%Y-%m-%dT%H:%M:%S",
+                    time.localtime(local_path.stat().st_mtime),
+                )
+                if local_path.is_file()
+                else None
+            ),
+        }
+
+    @staticmethod
+    def _file_type(path: Path) -> str:
+        extension = path.suffix.lower()
+
+        if extension == ".xml":
+            return "XML"
+
+        if extension == ".pdf":
+            return "PDF"
+
+        return "DOCUMENTO"

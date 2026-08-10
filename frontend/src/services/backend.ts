@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { CommandResult, UploadedPdfsResponse } from '../types/backend';
+import type { CommandResult, UploadedDocumentsResponse } from '../types/backend';
 
 declare global {
   interface Window {
@@ -26,14 +26,14 @@ export function isTauriRuntime(): boolean {
   return typeof window !== 'undefined' && window.__TAURI_INTERNALS__ !== undefined;
 }
 
-export async function uploadLocalPdfs(files: File[]): Promise<UploadedPdfsResponse> {
+export async function uploadLocalDocuments(files: File[]): Promise<UploadedDocumentsResponse> {
   const formData = new FormData();
 
   for (const file of files) {
     formData.append('files', file);
   }
 
-  const response = await fetch(`${localApiBaseUrl()}/uploads/pdfs`, {
+  const response = await fetch(`${localApiBaseUrl()}/uploads/documents`, {
     method: 'POST',
     body: formData
   });
@@ -42,8 +42,10 @@ export async function uploadLocalPdfs(files: File[]): Promise<UploadedPdfsRespon
     throw new Error(`Local upload unavailable: ${response.status}`);
   }
 
-  return (await response.json()) as UploadedPdfsResponse;
+  return (await response.json()) as UploadedDocumentsResponse;
 }
+
+export const uploadLocalPdfs = uploadLocalDocuments;
 
 async function callLocalApi<T>(
   action: string,

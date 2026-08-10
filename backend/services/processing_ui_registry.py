@@ -56,8 +56,8 @@ class ProcessingUiRegistry:
                 if key:
                     indexed[key] = record
 
-        for pdf_path in sorted(self.default_download_path.rglob("*.pdf")):
-            record = self._record_from_disk(pdf_path)
+        for document_path in self._local_documents_from_disk():
+            record = self._record_from_disk(document_path)
             key = self._file_key(record)
 
             if key and key not in indexed:
@@ -136,7 +136,7 @@ class ProcessingUiRegistry:
         return {
             "id": sha256 or str(path),
             "name": path.name,
-            "type": "PDF",
+            "type": self._file_type(path),
             "path": str(path),
             "originPath": None,
             "sizeBytes": stat.st_size,
@@ -150,6 +150,14 @@ class ProcessingUiRegistry:
             "processedAt": None,
             "modifiedAt": datetime.fromtimestamp(stat.st_mtime).isoformat(timespec="seconds"),
         }
+
+    def _local_documents_from_disk(self) -> list[Path]:
+        documents: list[Path] = []
+
+        for extension in ("*.pdf", "*.xml"):
+            documents.extend(sorted(self.default_download_path.rglob(extension)))
+
+        return sorted(documents)
 
     def _merge_files(
         self,
@@ -244,3 +252,15 @@ class ProcessingUiRegistry:
             return "partial"
 
         return "success"
+
+    @staticmethod
+    def _file_type(path: Path) -> str:
+        extension = path.suffix.lower()
+
+        if extension == ".xml":
+            return "XML"
+
+        if extension == ".pdf":
+            return "PDF"
+
+        return "DOCUMENTO"
