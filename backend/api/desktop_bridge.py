@@ -43,6 +43,18 @@ class DesktopBridge:
                 options = ProcessingOptions.from_payload(payload)
                 return success(DocumentProcessingService().process(options))
 
+            if action == "documents.last":
+                return success(DocumentProcessingService().last_processing())
+
+            if action == "downloads.default_path":
+                return success(DocumentProcessingService().default_download_path())
+
+            if action == "files.list":
+                return success(DocumentProcessingService().list_files())
+
+            if action == "history.list":
+                return success(DocumentProcessingService().list_history())
+
             if action == "lumina.start":
                 return success(LuminaAutomationService().iniciar_lancamento())
 

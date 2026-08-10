@@ -1,13 +1,14 @@
-import { FolderOpen, ListChecks, MousePointer, UploadCloud, X } from 'lucide-react';
-import type { ChangeEvent } from 'react';
+import { Download, FolderOpen, ListChecks, MousePointer, UploadCloud, X } from 'lucide-react';
+import type { ChangeEvent, DragEvent } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { open } from '@tauri-apps/plugin-dialog';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DataTable } from '../components/DataTable';
 import { SectionHeader } from '../components/SectionHeader';
 import { ToggleRow } from '../components/ToggleRow';
 import { callBackend, isTauriRuntime, uploadLocalPdfs } from '../services/backend';
 import type {
+  DefaultDownloadPathResponse,
   ExcelMode,
   ProcessingOptions,
   ProcessingResponse,
@@ -34,6 +35,12 @@ const columns = [
   },
   { key: 'parser', label: 'Parser' },
   {
+    key: 'downloadedPath',
+    label: 'Arquivo local',
+    render: (row: Record<string, unknown>) =>
+      displayPath(String(row.downloadedPath ?? row.path ?? '-'))
+  },
+  {
     key: 'error',
     label: 'Erro',
     render: (row: Record<string, unknown>) => String(row.error ?? '-')
@@ -54,9 +61,11 @@ export function ProcessPdfsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const [source, setSource] = useState<ProcessingSource>('supabase');
+  const [downloadPath, setDownloadPath] = useState<string | null>(null);
   const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
   const [selectionError, setSelectionError] = useState<string | null>(null);
-  const [options, setOptions] = useState<Omit<ProcessingOptions, 'source' | 'paths'>>({
+  const [persistedResponse, setPersistedResponse] = useState<ProcessingResponse | null>(null);
+  const [options, setOptions] = useState<Omit<ProcessingOptions, 'source' | 'paths' | 'downloadPath'>>({
     generateExcel: true,
     downloadPdfsLocally: true,
     ignoreDuplicates: true,
@@ -69,10 +78,41 @@ export function ProcessPdfsPage() {
   const action = useAsyncAction((payload: ProcessingOptions) =>
     callBackend<ProcessingResponse>('documents.process', payload)
   );
+  const lastProcessingAction = useAsyncAction(() =>
+    callBackend<ProcessingResponse | null>('documents.last')
+  );
 
-  const rows = action.data?.rows ?? [];
+  useEffect(() => {
+    let active = true;
 
-  function runProcessing() {
+    lastProcessingAction
+      .run()
+      .then((lastProcessing) => {
+        if (!active || !lastProcessing) {
+          return;
+        }
+
+        setPersistedResponse(lastProcessing);
+
+        if (lastProcessing.downloadPath) {
+          setDownloadPath(lastProcessing.downloadPath);
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const rows = action.data?.rows ?? persistedResponse?.rows ?? [];
+
+  async function runProcessing() {
+    if (options.downloadPdfsLocally && !downloadPath) {
+      setSelectionError('Escolha o local padrão de download antes de processar.');
+      return;
+    }
+
     if (source !== 'supabase' && selectedPaths.length === 0) {
       setSelectionError('Selecione uma pasta ou pelo menos um PDF antes de processar.');
       return;
@@ -80,13 +120,17 @@ export function ProcessPdfsPage() {
 
     setSelectionError(null);
 
-    action
-      .run({
+    try {
+      const result = await action.run({
         ...options,
         source,
-        paths: selectedPaths
-      })
-      .catch(() => undefined);
+        paths: selectedPaths,
+        downloadPath
+      });
+      setPersistedResponse(result);
+    } catch {
+      return;
+    }
   }
 
   function setExcelMode(excelMode: ExcelMode) {
@@ -96,6 +140,34 @@ export function ProcessPdfsPage() {
   function selectSupabase() {
     setSource('supabase');
     setSelectionError(null);
+  }
+
+  async function selectDownloadPath() {
+    setSelectionError(null);
+
+    if (!isTauriRuntime()) {
+      try {
+        const fallback = await callBackend<DefaultDownloadPathResponse>('downloads.default_path');
+        setDownloadPath(fallback.path);
+      } catch {
+        setSelectionError('Não foi possível carregar a pasta padrão da API local.');
+      }
+
+      return;
+    }
+
+    try {
+      const selected = await open({
+        directory: true,
+        multiple: false
+      });
+
+      if (typeof selected === 'string') {
+        setDownloadPath(selected);
+      }
+    } catch (error) {
+      setSelectionError(selectionDialogError(error));
+    }
   }
 
   async function selectFolder() {
@@ -187,7 +259,7 @@ export function ProcessPdfsPage() {
     setSelectionError(null);
   }
 
-  async function handleDrop(event: React.DragEvent<HTMLDivElement>) {
+  async function handleDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
 
     const files = Array.from(event.dataTransfer.files);
@@ -236,6 +308,17 @@ export function ProcessPdfsPage() {
 
       {action.error ? <div className="alert danger">{action.error}</div> : null}
       {selectionError ? <div className="alert danger">{selectionError}</div> : null}
+
+      <div className="download-location-panel">
+        <div>
+          <strong>Local padrão de download</strong>
+          <span>{downloadPath ?? 'Escolha uma pasta antes de processar.'}</span>
+        </div>
+        <button className="button secondary" onClick={selectDownloadPath} type="button">
+          <Download size={16} />
+          Escolher pasta
+        </button>
+      </div>
 
       <div className="source-grid">
         <SourceOption
@@ -374,7 +457,7 @@ export function ProcessPdfsPage() {
 
       <DataTable
         columns={columns}
-        emptyLabel="Nenhum PDF processado nesta sessão."
+        emptyLabel="Nenhum PDF processado ainda."
         rows={rows as unknown as Record<string, unknown>[]}
       />
     </div>

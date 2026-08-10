@@ -54,6 +54,7 @@ class ProcessingOptions:
 
     source: ProcessingSource
     paths: list[str] = field(default_factory=list)
+    download_path: str | None = None
     generate_excel: bool = True
     download_pdfs_locally: bool = True
     ignore_duplicates: bool = True
@@ -69,6 +70,11 @@ class ProcessingOptions:
         return cls(
             source=payload.get("source", "supabase"),
             paths=[str(path) for path in payload.get("paths", [])],
+            download_path=(
+                str(payload["downloadPath"]).strip()
+                if payload.get("downloadPath")
+                else None
+            ),
             generate_excel=bool(payload.get("generateExcel", True)),
             download_pdfs_locally=bool(payload.get("downloadPdfsLocally", True)),
             ignore_duplicates=bool(payload.get("ignoreDuplicates", True)),

@@ -662,6 +662,7 @@ textarea::-webkit-scrollbar-thumb {
 .content-band,
 .launch-panel,
 .table-shell,
+.download-location-panel,
 .drop-zone {
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -933,6 +934,37 @@ select:focus {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.download-location-panel {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+}
+
+.download-location-panel > div {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+
+.download-location-panel strong {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.download-location-panel span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .selected-files-panel {
@@ -1352,6 +1384,7 @@ tbody tr:hover {
   .section-actions,
   .section-actions .button,
   .drop-actions,
+  .download-location-panel .button,
   .drop-actions .button {
     width: 100%;
   }
@@ -1370,6 +1403,16 @@ tbody tr:hover {
     flex-direction: column;
   }
 
+  .download-location-panel {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .download-location-panel span {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
   .drop-actions {
     justify-content: flex-start;
   }
@@ -1385,6 +1428,7 @@ tbody tr:hover {
   .content-band,
   .launch-panel,
   .table-shell,
+  .download-location-panel,
   .drop-zone,
   .log-viewer {
     backdrop-filter: blur(18px) saturate(112%);
@@ -1498,6 +1542,7 @@ tbody tr:hover {
   }
 
   .content-band,
+  .download-location-panel,
   .drop-zone,
   .launch-panel {
     padding: 14px;

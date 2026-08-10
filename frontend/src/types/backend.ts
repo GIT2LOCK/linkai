@@ -23,6 +23,7 @@ export type ExcelMode = 'single_sheet' | 'multi_sheet' | 'one_file_per_pdf';
 export interface ProcessingOptions {
   source: ProcessingSource;
   paths: string[];
+  downloadPath: string | null;
   generateExcel: boolean;
   downloadPdfsLocally: boolean;
   ignoreDuplicates: boolean;
@@ -45,11 +46,18 @@ export interface ProcessingRow {
   parser: string | null;
   error: string | null;
   progress: number;
+  path?: string | null;
+  originPath?: string | null;
+  downloadedPath?: string | null;
+  downloaded?: boolean;
 }
 
 export interface ProcessingResponse {
   source: string;
   rows?: ProcessingRow[];
+  sessionId?: string;
+  processedAt?: string;
+  downloadPath?: string | null;
   summary: {
     listed: number;
     processed: number;
@@ -65,4 +73,40 @@ export interface SpreadsheetInfo {
   path: string;
   sizeBytes: number;
   modifiedAt: number;
+}
+
+export interface DefaultDownloadPathResponse {
+  path: string;
+}
+
+export interface LocalFileInfo {
+  id: string;
+  name: string;
+  type: string;
+  path: string;
+  originPath: string | null;
+  sizeBytes: number | null;
+  hash: string | null;
+  source: string | null;
+  documentType: string | null;
+  parser: string | null;
+  pageCount: number | null;
+  status: string | null;
+  error: string | null;
+  processedAt: string | null;
+  modifiedAt: string | null;
+}
+
+export interface ProcessingHistoryItem {
+  sessionId: string;
+  processedAt: string;
+  source: string;
+  downloadPath: string | null;
+  listed: number;
+  processed: number;
+  ignored: number;
+  failed: number;
+  duplicated: number;
+  elapsedSeconds: number;
+  status: string;
 }
