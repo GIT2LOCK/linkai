@@ -4,6 +4,14 @@ export interface CommandResult<T> {
   error: string | null;
 }
 
+export interface OperatorProfile {
+  name: string;
+  role: string;
+  email: string | null;
+  avatar_url: string | null;
+  source: 'supabase' | 'fallback';
+}
+
 export type ProcessingSource = 'supabase' | 'folder' | 'files';
 export type ExcelMode = 'single_sheet' | 'multi_sheet' | 'one_file_per_pdf';
 

@@ -20,6 +20,7 @@ from backend.models.ui import ProcessingOptions
 from backend.services import (
     DashboardService,
     DocumentProcessingService,
+    OperatorService,
     SpreadsheetService,
 )
 from lumina_bot.config import get_supabase_config
@@ -34,6 +35,9 @@ class DesktopBridge:
         try:
             if action == "dashboard.metrics":
                 return success(DashboardService().metrics().to_dict())
+
+            if action == "operator.profile":
+                return success(OperatorService().profile().to_dict())
 
             if action == "documents.process":
                 options = ProcessingOptions.from_payload(payload)

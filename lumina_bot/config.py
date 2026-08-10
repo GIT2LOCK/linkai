@@ -183,6 +183,33 @@ class LoginCredentials:
 
 
 @dataclass(frozen=True, slots=True)
+class SupabaseConnectionConfig:
+    """Base Supabase credentials shared by database and storage services."""
+
+    url: str
+    service_role_key: str
+
+    @classmethod
+    def from_env(cls) -> Self:
+        """Build base Supabase settings from environment variables."""
+        values = {
+            "SUPABASE_URL": os.getenv("SUPABASE_URL"),
+            "SUPABASE_SERVICE_ROLE_KEY": os.getenv("SUPABASE_SERVICE_ROLE_KEY"),
+        }
+        missing = [name for name, value in values.items() if not value]
+
+        if missing:
+            raise ConfigurationError(
+                "Missing required Supabase variable(s): " + ", ".join(missing)
+            )
+
+        return cls(
+            url=str(values["SUPABASE_URL"]),
+            service_role_key=str(values["SUPABASE_SERVICE_ROLE_KEY"]),
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class SupabaseConfig:
     """Supabase Storage settings for private fiscal document buckets."""
 
@@ -196,11 +223,8 @@ class SupabaseConfig:
     @classmethod
     def from_env(cls) -> Self:
         """Build Supabase settings from environment variables."""
-        values = {
-            "SUPABASE_URL": os.getenv("SUPABASE_URL"),
-            "SUPABASE_SERVICE_ROLE_KEY": os.getenv("SUPABASE_SERVICE_ROLE_KEY"),
-            "SUPABASE_BUCKET": os.getenv("SUPABASE_BUCKET"),
-        }
+        connection = SupabaseConnectionConfig.from_env()
+        values = {"SUPABASE_BUCKET": os.getenv("SUPABASE_BUCKET")}
         missing = [name for name, value in values.items() if not value]
 
         if missing:
@@ -209,8 +233,8 @@ class SupabaseConfig:
             )
 
         return cls(
-            url=str(values["SUPABASE_URL"]),
-            service_role_key=str(values["SUPABASE_SERVICE_ROLE_KEY"]),
+            url=connection.url,
+            service_role_key=connection.service_role_key,
             bucket=str(values["SUPABASE_BUCKET"]),
             folder=os.getenv("SUPABASE_FOLDER", "").strip("/"),
             pdf_download_path=_resolve_project_path(
@@ -225,6 +249,60 @@ class SupabaseConfig:
 def get_supabase_config() -> SupabaseConfig:
     """Return Supabase settings only when the processing module needs them."""
     return SupabaseConfig.from_env()
+
+
+def get_supabase_connection_config() -> SupabaseConnectionConfig:
+    """Return base Supabase credentials without requiring Storage settings."""
+    return SupabaseConnectionConfig.from_env()
+
+
+@dataclass(frozen=True, slots=True)
+class OperatorProfileConfig:
+    """Supabase table settings used to load the current desktop operator."""
+
+    table: str
+    id_column: str
+    id_value: str | None
+    email_column: str
+    email_value: str | None
+    username_column: str
+    username_value: str | None
+    name_column: str
+    role_column: str
+    avatar_url_column: str
+    fallback_name: str
+    fallback_role: str
+
+    @classmethod
+    def from_env(cls) -> Self:
+        """Build operator profile lookup settings from environment variables."""
+        return cls(
+            table=os.getenv("SUPABASE_OPERATOR_TABLE", "operators"),
+            id_column=os.getenv("SUPABASE_OPERATOR_ID_COLUMN", "id"),
+            id_value=os.getenv("SUPABASE_OPERATOR_ID") or None,
+            email_column=os.getenv("SUPABASE_OPERATOR_EMAIL_COLUMN", "email"),
+            email_value=os.getenv("SUPABASE_OPERATOR_EMAIL") or None,
+            username_column=os.getenv("SUPABASE_OPERATOR_USERNAME_COLUMN", "username"),
+            username_value=(
+                os.getenv("SUPABASE_OPERATOR_USERNAME")
+                or os.getenv("LUMINA_USERNAME")
+                or Config.LUMINA_USER
+                or None
+            ),
+            name_column=os.getenv("SUPABASE_OPERATOR_NAME_COLUMN", "name"),
+            role_column=os.getenv("SUPABASE_OPERATOR_ROLE_COLUMN", "role"),
+            avatar_url_column=os.getenv(
+                "SUPABASE_OPERATOR_AVATAR_URL_COLUMN",
+                "avatar_url",
+            ),
+            fallback_name=os.getenv("OPERATOR_FALLBACK_NAME", "Operador"),
+            fallback_role=os.getenv("OPERATOR_FALLBACK_ROLE", "LinkAI Desktop"),
+        )
+
+
+def get_operator_profile_config() -> OperatorProfileConfig:
+    """Return settings used to locate the current operator profile."""
+    return OperatorProfileConfig.from_env()
 
 
 DEFAULT_CONFIG = AppConfig.from_env()

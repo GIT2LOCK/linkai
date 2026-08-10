@@ -1,7 +1,9 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Bell, Search, ShieldCheck, UserRound } from 'lucide-react';
 import linkaiIconUrl from '../assets/linkai-icon.png';
 import linkaiLogoUrl from '../assets/linkai-logo.png';
+import { callBackend } from '../services/backend';
+import type { OperatorProfile } from '../types/backend';
 import type { NavigationItem, PageKey } from '../types/navigation';
 
 interface AppShellProps {
@@ -18,6 +20,29 @@ export function AppShell({
   onNavigate
 }: AppShellProps) {
   const activeLabel = navigation.find((item) => item.key === activePage)?.label ?? 'Processar PDFs';
+  const [operator, setOperator] = useState<OperatorProfile>({
+    avatar_url: null,
+    email: null,
+    name: 'Operador',
+    role: 'LinkAI Desktop',
+    source: 'fallback'
+  });
+
+  useEffect(() => {
+    let mounted = true;
+
+    callBackend<OperatorProfile>('operator.profile')
+      .then((profile) => {
+        if (mounted) {
+          setOperator(profile);
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <div className="app-shell">
@@ -62,10 +87,16 @@ export function AppShell({
       <main className="main-panel">
         <header className="topbar">
           <div className="topbar-greeting">
-            <img src={linkaiIconUrl} alt="" />
+            <img
+              src={operator.avatar_url || linkaiIconUrl}
+              alt=""
+              onError={(event) => {
+                event.currentTarget.src = linkaiIconUrl;
+              }}
+            />
             <div>
-              <span className="eyebrow">LinkAI</span>
-              <strong>Olá, operador</strong>
+              <span className="eyebrow">{operator.role}</span>
+              <strong>{operator.name}</strong>
             </div>
           </div>
 

@@ -34,6 +34,21 @@ class DashboardMetrics:
 
 
 @dataclass(slots=True)
+class OperatorProfile:
+    """Current operator profile shown by the desktop shell."""
+
+    name: str
+    role: str
+    email: str | None = None
+    avatar_url: str | None = None
+    source: str = "fallback"
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a serializable dictionary."""
+        return asdict(self)
+
+
+@dataclass(slots=True)
 class ProcessingOptions:
     """Options selected by the user before processing documents."""
 
