@@ -12,6 +12,11 @@ export interface OperatorProfile {
   source: 'supabase' | 'fallback';
 }
 
+export interface UploadedPdfsResponse {
+  paths: string[];
+  count: number;
+}
+
 export type ProcessingSource = 'supabase' | 'folder' | 'files';
 export type ExcelMode = 'single_sheet' | 'multi_sheet' | 'one_file_per_pdf';
 

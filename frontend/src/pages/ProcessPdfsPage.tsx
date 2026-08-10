@@ -1,11 +1,12 @@
 import { FolderOpen, ListChecks, MousePointer, UploadCloud, X } from 'lucide-react';
+import type { ChangeEvent } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { open } from '@tauri-apps/plugin-dialog';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { DataTable } from '../components/DataTable';
 import { SectionHeader } from '../components/SectionHeader';
 import { ToggleRow } from '../components/ToggleRow';
-import { callBackend } from '../services/backend';
+import { callBackend, isTauriRuntime, uploadLocalPdfs } from '../services/backend';
 import type {
   ExcelMode,
   ProcessingOptions,
@@ -44,7 +45,14 @@ const columns = [
   }
 ];
 
+const folderInputAttributes = {
+  directory: '',
+  webkitdirectory: ''
+} as Record<string, string>;
+
 export function ProcessPdfsPage() {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
   const [source, setSource] = useState<ProcessingSource>('supabase');
   const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
   const [selectionError, setSelectionError] = useState<string | null>(null);
@@ -93,6 +101,11 @@ export function ProcessPdfsPage() {
   async function selectFolder() {
     setSelectionError(null);
 
+    if (!isTauriRuntime()) {
+      folderInputRef.current?.click();
+      return;
+    }
+
     try {
       const selected = await open({
         directory: true,
@@ -110,6 +123,11 @@ export function ProcessPdfsPage() {
 
   async function selectFiles() {
     setSelectionError(null);
+
+    if (!isTauriRuntime()) {
+      fileInputRef.current?.click();
+      return;
+    }
 
     try {
       const selected = await open({
@@ -130,26 +148,82 @@ export function ProcessPdfsPage() {
     }
   }
 
+  async function handleBrowserFileSelection(event: ChangeEvent<HTMLInputElement>) {
+    await uploadBrowserSelection(Array.from(event.target.files ?? []), 'files');
+    event.target.value = '';
+  }
+
+  async function handleBrowserFolderSelection(event: ChangeEvent<HTMLInputElement>) {
+    await uploadBrowserSelection(Array.from(event.target.files ?? []), 'folder');
+    event.target.value = '';
+  }
+
+  async function uploadBrowserSelection(files: File[], nextSource: ProcessingSource) {
+    const pdfFiles = files.filter((file) => file.name.toLowerCase().endsWith('.pdf'));
+
+    if (pdfFiles.length === 0) {
+      setSelectionError('Nenhum PDF foi encontrado na seleção.');
+      return;
+    }
+
+    try {
+      const uploaded = await uploadLocalPdfs(pdfFiles);
+
+      if (uploaded.paths.length === 0) {
+        setSelectionError('Nenhum PDF válido foi enviado para processamento.');
+        return;
+      }
+
+      setSelectedPaths(uploaded.paths);
+      setSource(nextSource);
+      setSelectionError(null);
+    } catch {
+      setSelectionError('Não foi possível enviar os PDFs para a API local. Verifique se o backend está rodando.');
+    }
+  }
+
   function clearSelection() {
     setSelectedPaths([]);
     setSelectionError(null);
   }
 
-  function handleDrop(event: React.DragEvent<HTMLDivElement>) {
+  async function handleDrop(event: React.DragEvent<HTMLDivElement>) {
     event.preventDefault();
-    const paths = Array.from(event.dataTransfer.files)
-      .map((file) => (file as File & { path?: string }).path ?? file.name)
-      .filter(Boolean);
+
+    const files = Array.from(event.dataTransfer.files);
+    const paths = files
+      .map((file) => (file as File & { path?: string }).path)
+      .filter((path): path is string => Boolean(path));
 
     if (paths.length > 0) {
       setSelectedPaths(paths);
       setSource('files');
       setSelectionError(null);
+      return;
     }
+
+    await uploadBrowserSelection(files, 'files');
   }
 
   return (
     <div className="page-stack">
+      <input
+        accept="application/pdf,.pdf"
+        className="hidden-file-input"
+        multiple
+        onChange={handleBrowserFileSelection}
+        ref={fileInputRef}
+        type="file"
+      />
+      <input
+        {...folderInputAttributes}
+        className="hidden-file-input"
+        multiple
+        onChange={handleBrowserFolderSelection}
+        ref={folderInputRef}
+        type="file"
+      />
+
       <SectionHeader
         title="Processar PDFs"
         description="Importe documentos, acompanhe a detecção e gere planilhas."
@@ -372,5 +446,5 @@ function selectionDialogError(error: unknown) {
     return null;
   }
 
-  return 'Não foi possível abrir o seletor de arquivos neste ambiente.';
+  return 'Não foi possível abrir o seletor nativo do aplicativo.';
 }

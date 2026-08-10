@@ -123,6 +123,10 @@ svg {
   flex: 0 0 auto;
 }
 
+.hidden-file-input {
+  display: none;
+}
+
 .app-shell {
   position: relative;
   z-index: 1;
