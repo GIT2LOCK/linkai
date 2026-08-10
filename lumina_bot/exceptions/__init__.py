@@ -43,6 +43,22 @@ class LoginFailed(LuminaBotError):
     """Raised when the login workflow fails after submitting credentials."""
 
 
+class SupabaseClientError(LuminaBotError):
+    """Raised when Supabase operations fail after retries."""
+
+
+class StorageError(LuminaBotError):
+    """Raised when document storage operations fail."""
+
+
+class PdfReadError(LuminaBotError):
+    """Raised when a PDF cannot be read."""
+
+
+class DocumentProcessingError(LuminaBotError):
+    """Raised when a document fails during processing."""
+
+
 # Compatibility aliases for the original core.exceptions module names.
 LuminaConfigError = ConfigurationError
 LuminaApplicationError = ApplicationError
