@@ -177,8 +177,8 @@ export function ProcessPdfsPage() {
       setSelectedPaths(uploaded.paths);
       setSource(nextSource);
       setSelectionError(null);
-    } catch {
-      setSelectionError('Não foi possível enviar os PDFs para a API local. Verifique se o backend está rodando.');
+    } catch (error) {
+      setSelectionError(uploadErrorMessage(error));
     }
   }
 
@@ -447,4 +447,18 @@ function selectionDialogError(error: unknown) {
   }
 
   return 'Não foi possível abrir o seletor nativo do aplicativo.';
+}
+
+function uploadErrorMessage(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+
+  if (message.includes('404')) {
+    return 'A API local está rodando, mas está desatualizada. Rode stop-linkai-web.ps1 e depois run-linkai-web.ps1.';
+  }
+
+  if (message.includes('Failed to fetch') || message.includes('unavailable')) {
+    return 'Não foi possível enviar os PDFs para a API local. Verifique se o backend está rodando na porta 8765.';
+  }
+
+  return 'Não foi possível enviar os PDFs para a API local.';
 }

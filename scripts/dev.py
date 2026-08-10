@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 import os
+import urllib.error
+import urllib.request
 import shutil
 import socket
 import subprocess
@@ -40,6 +42,12 @@ def main() -> int:
 
     try:
         if is_port_open(API_PORT):
+            if not is_api_compatible():
+                raise RuntimeError(
+                    "A API local na porta 8765 esta desatualizada ou incompleta. "
+                    "Execute .\\stop-linkai-web.ps1 e depois .\\run-linkai-web.ps1."
+                )
+
             print(f"API already running on http://127.0.0.1:{API_PORT}")
         else:
             processes.append(
@@ -129,6 +137,28 @@ def is_port_open(port: int) -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client:
         client.settimeout(0.25)
         return client.connect_ex(("127.0.0.1", port)) == 0
+
+
+def is_api_compatible() -> bool:
+    """Return True when the running API exposes routes required by the frontend."""
+    if not endpoint_matches("/health", expected_statuses={200}):
+        return False
+
+    return endpoint_matches("/uploads/pdfs", expected_statuses={405})
+
+
+def endpoint_matches(path: str, *, expected_statuses: set[int]) -> bool:
+    """Check a local API endpoint without requiring external dependencies."""
+    url = f"http://127.0.0.1:{API_PORT}{path}"
+    request = urllib.request.Request(url, method="GET")
+
+    try:
+        with urllib.request.urlopen(request, timeout=3) as response:
+            return response.status in expected_statuses
+    except urllib.error.HTTPError as exc:
+        return exc.code in expected_statuses
+    except OSError:
+        return False
 
 
 def start_process(
