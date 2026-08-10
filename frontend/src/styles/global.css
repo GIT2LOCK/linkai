@@ -622,6 +622,11 @@ textarea::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.1);
 }
 
+.button.ghost {
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.055);
+}
+
 .alert {
   padding: 13px 14px;
   border: 1px solid var(--line-soft);
@@ -924,6 +929,61 @@ select:focus {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.selected-files-panel {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.055)),
+    var(--glass);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(24px) saturate(118%);
+}
+
+.selected-files-panel > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.selected-files-panel span,
+.selected-files-panel small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 720;
+}
+
+.selected-files-panel strong {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 820;
+}
+
+.selected-files-panel ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.selected-files-panel li {
+  min-width: 0;
+  overflow: hidden;
+  padding: 9px 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  color: var(--text-soft);
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 13px;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .split-grid {

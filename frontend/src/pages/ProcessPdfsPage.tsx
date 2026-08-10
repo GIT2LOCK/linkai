@@ -1,4 +1,4 @@
-import { FolderOpen, ListChecks, MousePointer, UploadCloud } from 'lucide-react';
+import { FolderOpen, ListChecks, MousePointer, UploadCloud, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { open } from '@tauri-apps/plugin-dialog';
 import { useState } from 'react';
@@ -46,7 +46,8 @@ const columns = [
 
 export function ProcessPdfsPage() {
   const [source, setSource] = useState<ProcessingSource>('supabase');
-  const [pathsText, setPathsText] = useState('');
+  const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
+  const [selectionError, setSelectionError] = useState<string | null>(null);
   const [options, setOptions] = useState<Omit<ProcessingOptions, 'source' | 'paths'>>({
     generateExcel: true,
     downloadPdfsLocally: true,
@@ -64,16 +65,18 @@ export function ProcessPdfsPage() {
   const rows = action.data?.rows ?? [];
 
   function runProcessing() {
-    const paths = pathsText
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean);
+    if (source !== 'supabase' && selectedPaths.length === 0) {
+      setSelectionError('Selecione uma pasta ou pelo menos um PDF antes de processar.');
+      return;
+    }
+
+    setSelectionError(null);
 
     action
       .run({
         ...options,
         source,
-        paths
+        paths: selectedPaths
       })
       .catch(() => undefined);
   }
@@ -82,32 +85,54 @@ export function ProcessPdfsPage() {
     setOptions((current) => ({ ...current, excelMode }));
   }
 
-  async function selectFolder() {
-    const selected = await open({
-      directory: true,
-      multiple: false
-    });
+  function selectSupabase() {
+    setSource('supabase');
+    setSelectionError(null);
+  }
 
-    if (typeof selected === 'string') {
-      setPathsText(selected);
-      setSource('folder');
+  async function selectFolder() {
+    setSelectionError(null);
+
+    try {
+      const selected = await open({
+        directory: true,
+        multiple: false
+      });
+
+      if (typeof selected === 'string') {
+        setSelectedPaths([selected]);
+        setSource('folder');
+      }
+    } catch (error) {
+      setSelectionError(selectionDialogError(error));
     }
   }
 
   async function selectFiles() {
-    const selected = await open({
-      directory: false,
-      multiple: true,
-      filters: [{ name: 'PDF', extensions: ['pdf'] }]
-    });
+    setSelectionError(null);
 
-    if (Array.isArray(selected)) {
-      setPathsText(selected.join('\n'));
-      setSource('files');
-    } else if (typeof selected === 'string') {
-      setPathsText(selected);
-      setSource('files');
+    try {
+      const selected = await open({
+        directory: false,
+        multiple: true,
+        filters: [{ name: 'PDF', extensions: ['pdf'] }]
+      });
+
+      if (Array.isArray(selected)) {
+        setSelectedPaths(selected);
+        setSource('files');
+      } else if (typeof selected === 'string') {
+        setSelectedPaths([selected]);
+        setSource('files');
+      }
+    } catch (error) {
+      setSelectionError(selectionDialogError(error));
     }
+  }
+
+  function clearSelection() {
+    setSelectedPaths([]);
+    setSelectionError(null);
   }
 
   function handleDrop(event: React.DragEvent<HTMLDivElement>) {
@@ -117,8 +142,9 @@ export function ProcessPdfsPage() {
       .filter(Boolean);
 
     if (paths.length > 0) {
-      setPathsText(paths.join('\n'));
+      setSelectedPaths(paths);
       setSource('files');
+      setSelectionError(null);
     }
   }
 
@@ -135,38 +161,28 @@ export function ProcessPdfsPage() {
       />
 
       {action.error ? <div className="alert danger">{action.error}</div> : null}
+      {selectionError ? <div className="alert danger">{selectionError}</div> : null}
 
       <div className="source-grid">
         <SourceOption
           active={source === 'supabase'}
           icon={UploadCloud}
           label="Bucket Supabase"
-          onClick={() => setSource('supabase')}
+          onClick={selectSupabase}
         />
         <SourceOption
           active={source === 'folder'}
           icon={FolderOpen}
           label="Pasta inteira"
-          onClick={() => setSource('folder')}
+          onClick={selectFolder}
         />
         <SourceOption
           active={source === 'files'}
           icon={MousePointer}
           label="Arquivos manuais"
-          onClick={() => setSource('files')}
+          onClick={selectFiles}
         />
       </div>
-
-      {source !== 'supabase' ? (
-        <label className="field">
-          <span>Caminhos locais, um por linha</span>
-          <textarea
-            onChange={(event) => setPathsText(event.target.value)}
-            placeholder={'C:\\notas\\entrada\nC:\\notas\\manual\\nota.pdf'}
-            value={pathsText}
-          />
-        </label>
-      ) : null}
 
       <div
         className="drop-zone"
@@ -174,8 +190,8 @@ export function ProcessPdfsPage() {
         onDrop={handleDrop}
       >
         <div>
-          <strong>Entrada manual</strong>
-          <span>Selecione uma pasta, múltiplos PDFs ou arraste documentos para cá.</span>
+          <strong>{selectionTitle(source, selectedPaths.length)}</strong>
+          <span>{selectionDescription(source, selectedPaths)}</span>
         </div>
         <div className="drop-actions">
           <button className="button secondary" onClick={selectFolder} type="button">
@@ -184,8 +200,31 @@ export function ProcessPdfsPage() {
           <button className="button secondary" onClick={selectFiles} type="button">
             Selecionar PDFs
           </button>
+          {selectedPaths.length > 0 ? (
+            <button className="button ghost" onClick={clearSelection} type="button">
+              <X size={16} />
+              Limpar
+            </button>
+          ) : null}
         </div>
       </div>
+
+      {selectedPaths.length > 0 ? (
+        <div className="selected-files-panel">
+          <div>
+            <span>Selecionado</span>
+            <strong>{selectedPaths.length === 1 ? '1 item' : `${selectedPaths.length} itens`}</strong>
+          </div>
+          <ul>
+            {selectedPaths.slice(0, 6).map((path) => (
+              <li key={path}>{displayPath(path)}</li>
+            ))}
+          </ul>
+          {selectedPaths.length > 6 ? (
+            <small>+{selectedPaths.length - 6} arquivo(s) oculto(s)</small>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="split-grid">
         <div className="content-band">
@@ -272,7 +311,7 @@ interface SourceOptionProps {
   active: boolean;
   icon: LucideIcon;
   label: string;
-  onClick: () => void;
+  onClick: () => void | Promise<void>;
 }
 
 function SourceOption({ active, icon: Icon, label, onClick }: SourceOptionProps) {
@@ -292,4 +331,46 @@ function formatBytes(value: number | null) {
   const units = ['B', 'KB', 'MB', 'GB'];
   const index = Math.floor(Math.log(value) / Math.log(1024));
   return `${(value / 1024 ** index).toFixed(1)} ${units[index]}`;
+}
+
+function displayPath(path: string) {
+  return path.split(/[\\/]/).filter(Boolean).pop() ?? path;
+}
+
+function selectionTitle(source: ProcessingSource, count: number) {
+  if (source === 'supabase') {
+    return 'Entrada pelo Supabase';
+  }
+
+  if (count > 0) {
+    return source === 'folder' ? 'Pasta selecionada' : 'PDFs selecionados';
+  }
+
+  return source === 'folder' ? 'Selecione uma pasta' : 'Selecione PDFs';
+}
+
+function selectionDescription(source: ProcessingSource, paths: string[]) {
+  if (source === 'supabase') {
+    return 'Os PDFs serão buscados automaticamente no bucket privado configurado.';
+  }
+
+  if (paths.length === 0) {
+    return 'Use o botão de seleção para abrir o explorador do computador.';
+  }
+
+  if (source === 'folder') {
+    return displayPath(paths[0]);
+  }
+
+  return paths.length === 1 ? displayPath(paths[0]) : `${paths.length} PDFs selecionados.`;
+}
+
+function selectionDialogError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+
+  if (message.toLowerCase().includes('cancel')) {
+    return null;
+  }
+
+  return 'Não foi possível abrir o seletor de arquivos neste ambiente.';
 }
