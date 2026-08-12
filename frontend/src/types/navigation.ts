@@ -7,6 +7,7 @@ export type PageKey =
   | 'supabase'
   | 'arquivos'
   | 'ia'
+  | 'construcao-civil'
   | 'historico'
   | 'configuracoes'
   | 'logs';
