@@ -1,37 +1,38 @@
-import { useEffect } from 'react';
-import { DataTable } from '../components/DataTable';
-import { SectionHeader } from '../components/SectionHeader';
-import { callBackend } from '../services/backend';
-import type { SpreadsheetInfo } from '../types/backend';
-import { useAsyncAction } from '../hooks/useAsyncAction';
+import { useEffect } from "react";
+import { DataTable } from "../components/DataTable";
+import { SectionHeader } from "../components/SectionHeader";
+import { callBackend } from "../services/backend";
+import type { SpreadsheetInfo } from "../types/backend";
+import { useAsyncAction } from "../hooks/useAsyncAction";
 
 const columns = [
-  { key: 'name', label: 'Nome' },
+  { key: "name", label: "Nome" },
   {
-    key: 'sizeBytes',
-    label: 'Tamanho',
-    render: (row: Record<string, unknown>) =>
-      `${((row.sizeBytes as number) / 1024).toFixed(1)} KB`
+    key: "sizeBytes",
+    label: "Tamanho",
+    render: (row: Record<string, unknown>) => `${((row.sizeBytes as number) / 1024).toFixed(1)} KB`,
   },
   {
-    key: 'modifiedAt',
-    label: 'Modificado',
+    key: "modifiedAt",
+    label: "Modificado",
     render: (row: Record<string, unknown>) =>
-      new Date((row.modifiedAt as number) * 1000).toLocaleString()
+      new Date((row.modifiedAt as number) * 1000).toLocaleString(),
   },
-  { key: 'path', label: 'Caminho' }
+  { key: "path", label: "Caminho" },
 ];
 
 export function SpreadsheetsPage() {
-  const action = useAsyncAction(() => callBackend<SpreadsheetInfo[]>('spreadsheets.list'));
+  const action = useAsyncAction(() => callBackend<SpreadsheetInfo[]>("spreadsheets.list"));
+  const { run } = action;
 
   useEffect(() => {
-    action.run().catch(() => undefined);
-  }, [action.run]);
+    run().catch(() => undefined);
+  }, [run]);
 
   return (
     <div className="page-stack">
       <SectionHeader
+        eyebrow="Dados"
         title="Planilhas"
         description="Consulte os arquivos Excel gerados."
         actions={

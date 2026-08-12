@@ -1,9 +1,10 @@
-import { SectionHeader } from '../components/SectionHeader';
+import { SectionHeader } from "../components/SectionHeader";
 
 export function AiPage() {
   return (
     <div className="page-stack">
       <SectionHeader
+        eyebrow="Operação"
         title="Inteligência Artificial"
         description="Configure quando a análise inteligente deve ser acionada."
       />

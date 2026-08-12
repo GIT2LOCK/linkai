@@ -18,6 +18,7 @@ from backend.core.log_stream import LogStream
 from backend.core.result import CommandResult, failure, success
 from backend.models.ui import ProcessingOptions
 from backend.services import (
+    ConstructionInsightsService,
     DashboardService,
     DocumentProcessingService,
     OperatorService,
@@ -38,6 +39,19 @@ class DesktopBridge:
 
             if action == "operator.profile":
                 return success(OperatorService().profile().to_dict())
+
+            if action == "noticias.recentes":
+                limit = int(payload.get("limite", 6))
+                force = bool(payload.get("force", False))
+                return success(
+                    ConstructionInsightsService().recent_news(limit, force=force)
+                )
+
+            if action == "indicadores.painel":
+                force = bool(payload.get("force", False))
+                return success(
+                    ConstructionInsightsService().indicator_panel(force=force)
+                )
 
             if action == "documents.process":
                 options = ProcessingOptions.from_payload(payload)
@@ -66,10 +80,20 @@ class DesktopBridge:
                 stream = LogStream()
                 return success({"path": stream.export_path(), "lines": stream.latest(lines)})
 
-            if action == "supabase.test":
+            if action in {"cloud.test", "supabase.test"}:
                 config = get_supabase_config()
                 client = SupabaseStorageClient(config)
                 files = client.listar(config.folder)
+                if action == "cloud.test":
+                    return success(
+                        {
+                            "status": "connected",
+                            "space": config.bucket,
+                            "folder": config.folder,
+                            "items": len(files),
+                        }
+                    )
+
                 return success(
                     {
                         "status": "connected",

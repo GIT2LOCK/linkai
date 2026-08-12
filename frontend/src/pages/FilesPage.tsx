@@ -1,60 +1,71 @@
-import { RefreshCw } from 'lucide-react';
-import { useEffect } from 'react';
-import { DataTable } from '../components/DataTable';
-import { SectionHeader } from '../components/SectionHeader';
-import { useAsyncAction } from '../hooks/useAsyncAction';
-import { callBackend } from '../services/backend';
-import type { LocalFileInfo } from '../types/backend';
+import { RefreshCw } from "lucide-react";
+import { useEffect } from "react";
+import { DataTable } from "../components/DataTable";
+import { SectionHeader } from "../components/SectionHeader";
+import { useAsyncAction } from "../hooks/useAsyncAction";
+import { callBackend } from "../services/backend";
+import type { LocalFileInfo } from "../types/backend";
 
 const columns = [
-  { key: 'name', label: 'Nome' },
-  { key: 'documentType', label: 'Documento' },
-  { key: 'pageCount', label: 'Páginas' },
+  { key: "name", label: "Nome" },
+  { key: "documentType", label: "Documento" },
+  { key: "pageCount", label: "Páginas" },
   {
-    key: 'sizeBytes',
-    label: 'Tamanho',
-    render: (row: Record<string, unknown>) => formatBytes(row.sizeBytes as number | null)
+    key: "sizeBytes",
+    label: "Tamanho",
+    render: (row: Record<string, unknown>) => formatBytes(row.sizeBytes as number | null),
   },
-  { key: 'status', label: 'Status' },
-  { key: 'source', label: 'Origem' },
+  { key: "status", label: "Status" },
   {
-    key: 'hash',
-    label: 'Hash',
+    key: "source",
+    label: "Origem",
+    render: (row: Record<string, unknown>) => displayOrigin(String(row["source"] ?? "-")),
+  },
+  {
+    key: "hash",
+    label: "Hash",
     render: (row: Record<string, unknown>) =>
-      typeof row.hash === 'string' ? row.hash.slice(0, 12) : '-'
+      typeof row.hash === "string" ? row.hash.slice(0, 12) : "-",
   },
-  { key: 'parser', label: 'Parser' },
+  { key: "parser", label: "Parser" },
   {
-    key: 'processedAt',
-    label: 'Processado em',
-    render: (row: Record<string, unknown>) => formatDate(row.processedAt as string | null)
-  },
-  {
-    key: 'path',
-    label: 'Local',
-    render: (row: Record<string, unknown>) => String(row.path ?? '-')
+    key: "processedAt",
+    label: "Processado em",
+    render: (row: Record<string, unknown>) => formatDate(row.processedAt as string | null),
   },
   {
-    key: 'error',
-    label: 'Erro',
-    render: (row: Record<string, unknown>) => String(row.error ?? '-')
-  }
+    key: "path",
+    label: "Local",
+    render: (row: Record<string, unknown>) => String(row.path ?? "-"),
+  },
+  {
+    key: "error",
+    label: "Erro",
+    render: (row: Record<string, unknown>) => String(row.error ?? "-"),
+  },
 ];
 
 export function FilesPage() {
-  const action = useAsyncAction(() => callBackend<LocalFileInfo[]>('files.list'));
+  const action = useAsyncAction(() => callBackend<LocalFileInfo[]>("files.list"));
+  const { run } = action;
 
   useEffect(() => {
-    action.run().catch(() => undefined);
-  }, []);
+    run().catch(() => undefined);
+  }, [run]);
 
   return (
     <div className="page-stack">
       <SectionHeader
+        eyebrow="Dados"
         title="Arquivos"
         description="Catálogo local de PDFs processados, baixados e registrados."
         actions={
-          <button className="button secondary" disabled={action.loading} onClick={() => action.run()} type="button">
+          <button
+            className="button secondary"
+            disabled={action.loading}
+            onClick={() => action.run()}
+            type="button"
+          >
             <RefreshCw size={16} />
             Atualizar
           </button>
@@ -74,17 +85,17 @@ export function FilesPage() {
 
 function formatBytes(value: number | null) {
   if (!value) {
-    return '-';
+    return "-";
   }
 
-  const units = ['B', 'KB', 'MB', 'GB'];
+  const units = ["B", "KB", "MB", "GB"];
   const index = Math.floor(Math.log(value) / Math.log(1024));
   return `${(value / 1024 ** index).toFixed(1)} ${units[index]}`;
 }
 
 function formatDate(value: string | null) {
   if (!value) {
-    return '-';
+    return "-";
   }
 
   const date = new Date(value);
@@ -93,8 +104,12 @@ function formatDate(value: string | null) {
     return value;
   }
 
-  return new Intl.DateTimeFormat('pt-BR', {
-    dateStyle: 'short',
-    timeStyle: 'short'
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
   }).format(date);
+}
+
+function displayOrigin(source: string) {
+  return source === "supabase" || source === "fallback" ? "Nuvem" : source;
 }

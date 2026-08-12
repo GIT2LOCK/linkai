@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
-import { SectionHeader } from '../components/SectionHeader';
-import { callBackend } from '../services/backend';
-import { useAsyncAction } from '../hooks/useAsyncAction';
+import { useEffect } from "react";
+import { SectionHeader } from "../components/SectionHeader";
+import { callBackend } from "../services/backend";
+import { useAsyncAction } from "../hooks/useAsyncAction";
 
 interface LogsResponse {
   path: string;
@@ -9,15 +9,17 @@ interface LogsResponse {
 }
 
 export function LogsPage() {
-  const action = useAsyncAction(() => callBackend<LogsResponse>('logs.latest', { lines: 500 }));
+  const action = useAsyncAction(() => callBackend<LogsResponse>("logs.latest", { lines: 500 }));
+  const { run } = action;
 
   useEffect(() => {
-    action.run().catch(() => undefined);
-  }, [action.run]);
+    run().catch(() => undefined);
+  }, [run]);
 
   return (
     <div className="page-stack">
       <SectionHeader
+        eyebrow="Sistema"
         title="Logs"
         description="Acompanhe os eventos recentes do sistema."
         actions={
@@ -28,7 +30,7 @@ export function LogsPage() {
       />
       {action.error ? <div className="alert danger">{action.error}</div> : null}
       <pre className="log-viewer">
-        {(action.data?.lines ?? ['Sem logs disponíveis.']).join('\n')}
+        {(action.data?.lines ?? ["Sem logs disponíveis."]).join("\n")}
       </pre>
     </div>
   );

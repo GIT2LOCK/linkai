@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import urllib.error
 import urllib.request
@@ -15,9 +16,10 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-FRONTEND_DIR = ROOT / "frontend"
 API_PORT = 8765
 FRONTEND_PORT = 5173
+DEV_HOST = "0.0.0.0"
+LOCAL_HOST = "127.0.0.1"
 
 
 def main() -> int:
@@ -35,7 +37,7 @@ def main() -> int:
         print("LinkAI dev environment check passed.")
         print(f"Python: {sys.executable}")
         print(f"npm: {npm}")
-        print(f"Frontend: {FRONTEND_DIR}")
+        print(f"Frontend: {ROOT}")
         return 0
 
     processes: list[tuple[str, subprocess.Popen[str]]] = []
@@ -48,7 +50,7 @@ def main() -> int:
                     "Execute .\\stop-linkai-web.ps1 e depois .\\run-linkai-web.ps1."
                 )
 
-            print(f"API already running on http://127.0.0.1:{API_PORT}")
+            print(f"API already running on http://{LOCAL_HOST}:{API_PORT}")
         else:
             processes.append(
                 start_process(
@@ -59,7 +61,7 @@ def main() -> int:
                         "uvicorn",
                         "backend.api.server:app",
                         "--host",
-                        "127.0.0.1",
+                        DEV_HOST,
                         "--port",
                         str(API_PORT),
                         "--reload",
@@ -69,13 +71,22 @@ def main() -> int:
             )
 
         if is_port_open(FRONTEND_PORT):
-            print(f"Frontend already running on http://127.0.0.1:{FRONTEND_PORT}")
+            print(f"Frontend already running on http://{LOCAL_HOST}:{FRONTEND_PORT}")
         else:
             processes.append(
                 start_process(
                     "web",
-                    [npm, "run", "dev:web"],
-                    FRONTEND_DIR,
+                    [
+                        npm,
+                        "run",
+                        "dev",
+                        "--",
+                        "--host",
+                        DEV_HOST,
+                        "--port",
+                        str(FRONTEND_PORT),
+                    ],
+                    ROOT,
                 )
             )
     except Exception:
@@ -84,8 +95,8 @@ def main() -> int:
 
     print("")
     print("LinkAI dev environment running.")
-    print(f"API:      http://127.0.0.1:{API_PORT}")
-    print(f"Frontend: http://127.0.0.1:{FRONTEND_PORT}")
+    print(f"API:      http://{LOCAL_HOST}:{API_PORT}")
+    print(f"Frontend: http://{LOCAL_HOST}:{FRONTEND_PORT}")
     print("Press Ctrl+C to stop processes started by this runner.")
     print("")
 
@@ -113,9 +124,6 @@ def main() -> int:
 
 def validate_environment() -> str:
     """Validate local development requirements."""
-    if not FRONTEND_DIR.is_dir():
-        raise RuntimeError(f"Frontend directory not found: {FRONTEND_DIR}")
-
     npm = find_npm()
 
     if npm is None:
@@ -141,10 +149,24 @@ def is_port_open(port: int) -> bool:
 
 def is_api_compatible() -> bool:
     """Return True when the running API exposes routes required by the frontend."""
-    if not endpoint_matches("/health", expected_statuses={200}):
+    if not health_exposes_required_features():
         return False
 
     return endpoint_matches("/uploads/pdfs", expected_statuses={405})
+
+
+def health_exposes_required_features() -> bool:
+    """Check whether the running API includes the current frontend features."""
+    url = f"http://{LOCAL_HOST}:{API_PORT}/health"
+
+    try:
+        with urllib.request.urlopen(url, timeout=3) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return False
+
+    features = payload.get("features", [])
+    return payload.get("status") == "ok" and "construction-insights" in features
 
 
 def endpoint_matches(path: str, *, expected_statuses: set[int]) -> bool:

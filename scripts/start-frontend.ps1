@@ -1,7 +1,6 @@
 $ErrorActionPreference = "Stop"
 
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..")
-$Frontend = Join-Path $Root "frontend"
 
-Set-Location $Frontend
-npm run dev:web
+Set-Location $Root
+npm run dev -- --host 0.0.0.0 --port 5173

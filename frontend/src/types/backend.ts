@@ -9,7 +9,7 @@ export interface OperatorProfile {
   role: string;
   email: string | null;
   avatar_url: string | null;
-  source: 'supabase' | 'fallback';
+  source: "supabase" | "fallback";
 }
 
 export interface UploadedDocumentsResponse {
@@ -17,8 +17,8 @@ export interface UploadedDocumentsResponse {
   count: number;
 }
 
-export type ProcessingSource = 'supabase' | 'folder' | 'files';
-export type ExcelMode = 'single_sheet' | 'multi_sheet' | 'one_file_per_pdf';
+export type ProcessingSource = "supabase" | "folder" | "files";
+export type ExcelMode = "single_sheet" | "multi_sheet" | "one_file_per_pdf";
 
 export interface ProcessingOptions {
   source: ProcessingSource;
@@ -97,12 +97,15 @@ export interface IndicadorConstrucao {
   dataReferencia: string | null;
   fonte: string | null;
   variacao: number | null;
-  variacaoSufixo: '%' | 'p.p.' | null;
+  variacaoSufixo: "%" | "p.p." | null;
   historico: PontoIndicador[];
 }
 
 export interface PainelIndicadores {
   indicadores: IndicadorConstrucao[];
+  atualizadoEm?: string | null;
+}
+
 export interface DefaultDownloadPathResponse {
   path: string;
 }

@@ -30,10 +30,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://127.0.0.1:5173",
-        "http://localhost:5173",
-    ],
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1|[0-9.]+)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -41,9 +38,12 @@ app.add_middleware(
 
 
 @app.get("/health")
-def health() -> dict[str, str]:
+def health() -> dict[str, Any]:
     """Return local API health status."""
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "features": ["document-uploads", "construction-insights"],
+    }
 
 
 @app.post("/invoke")
