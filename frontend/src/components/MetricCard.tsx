@@ -1,13 +1,13 @@
-import type { LucideIcon } from 'lucide-react';
+import type { LucideIcon } from "lucide-react";
 
 interface MetricCardProps {
   icon: LucideIcon;
   label: string;
   value: string | number;
-  tone?: 'neutral' | 'success' | 'warning' | 'danger';
+  tone?: "neutral" | "success" | "warning" | "danger";
 }
 
-export function MetricCard({ icon: Icon, label, value, tone = 'neutral' }: MetricCardProps) {
+export function MetricCard({ icon: Icon, label, value, tone = "neutral" }: MetricCardProps) {
   return (
     <div className={`metric-card tone-${tone}`}>
       <div className="metric-icon">

@@ -34,11 +34,28 @@ class DashboardMetrics:
 
 
 @dataclass(slots=True)
+class OperatorProfile:
+    """Current operator profile shown by the desktop shell."""
+
+    name: str
+    role: str
+    email: str | None = None
+    avatar_url: str | None = None
+    source: str = "fallback"
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a serializable dictionary."""
+        return asdict(self)
+
+
+@dataclass(slots=True)
 class ProcessingOptions:
     """Options selected by the user before processing documents."""
 
     source: ProcessingSource
     paths: list[str] = field(default_factory=list)
+    download_path: str | None = None
+    download_path_label: str | None = None
     generate_excel: bool = True
     download_pdfs_locally: bool = True
     ignore_duplicates: bool = True
@@ -54,6 +71,16 @@ class ProcessingOptions:
         return cls(
             source=payload.get("source", "supabase"),
             paths=[str(path) for path in payload.get("paths", [])],
+            download_path=(
+                str(payload["downloadPath"]).strip()
+                if payload.get("downloadPath")
+                else None
+            ),
+            download_path_label=(
+                str(payload["downloadPathLabel"]).strip()
+                if payload.get("downloadPathLabel")
+                else None
+            ),
             generate_excel=bool(payload.get("generateExcel", True)),
             download_pdfs_locally=bool(payload.get("downloadPdfsLocally", True)),
             ignore_duplicates=bool(payload.get("ignoreDuplicates", True)),

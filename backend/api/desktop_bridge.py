@@ -18,9 +18,10 @@ from backend.core.log_stream import LogStream
 from backend.core.result import CommandResult, failure, success
 from backend.models.ui import ProcessingOptions
 from backend.services import (
+    ConstructionInsightsService,
     DashboardService,
     DocumentProcessingService,
-    HomeService,
+    OperatorService,
     SpreadsheetService,
 )
 from lumina_bot.config import get_supabase_config
@@ -36,12 +37,37 @@ class DesktopBridge:
             if action == "dashboard.metrics":
                 return success(DashboardService().metrics().to_dict())
 
-            if action == "home.overview":
-                return success(HomeService().overview())
+            if action == "operator.profile":
+                return success(OperatorService().profile().to_dict())
+
+            if action == "noticias.recentes":
+                limit = int(payload.get("limite", 6))
+                force = bool(payload.get("force", False))
+                return success(
+                    ConstructionInsightsService().recent_news(limit, force=force)
+                )
+
+            if action == "indicadores.painel":
+                force = bool(payload.get("force", False))
+                return success(
+                    ConstructionInsightsService().indicator_panel(force=force)
+                )
 
             if action == "documents.process":
                 options = ProcessingOptions.from_payload(payload)
                 return success(DocumentProcessingService().process(options))
+
+            if action == "documents.last":
+                return success(DocumentProcessingService().last_processing())
+
+            if action == "downloads.default_path":
+                return success(DocumentProcessingService().default_download_path())
+
+            if action == "files.list":
+                return success(DocumentProcessingService().list_files())
+
+            if action == "history.list":
+                return success(DocumentProcessingService().list_history())
 
             if action == "lumina.start":
                 return success(LuminaAutomationService().iniciar_lancamento())
@@ -54,10 +80,20 @@ class DesktopBridge:
                 stream = LogStream()
                 return success({"path": stream.export_path(), "lines": stream.latest(lines)})
 
-            if action == "supabase.test":
+            if action in {"cloud.test", "supabase.test"}:
                 config = get_supabase_config()
                 client = SupabaseStorageClient(config)
                 files = client.listar(config.folder)
+                if action == "cloud.test":
+                    return success(
+                        {
+                            "status": "connected",
+                            "space": config.bucket,
+                            "folder": config.folder,
+                            "items": len(files),
+                        }
+                    )
+
                 return success(
                     {
                         "status": "connected",

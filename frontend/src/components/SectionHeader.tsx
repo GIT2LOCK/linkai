@@ -1,15 +1,17 @@
-import type { ReactNode } from 'react';
+import type { ReactNode } from "react";
 
 interface SectionHeaderProps {
   title: string;
   description?: string;
   actions?: ReactNode;
+  eyebrow?: string;
 }
 
-export function SectionHeader({ title, description, actions }: SectionHeaderProps) {
+export function SectionHeader({ title, description, actions, eyebrow }: SectionHeaderProps) {
   return (
     <div className="section-header">
-      <div>
+      <div className="section-header-copy">
+        {eyebrow ? <span className="eyebrow">{eyebrow}</span> : null}
         <h2>{title}</h2>
         {description ? <p>{description}</p> : null}
       </div>

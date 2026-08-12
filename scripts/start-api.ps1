@@ -8,4 +8,4 @@ if (-not (Test-Path -LiteralPath $Python)) {
 }
 
 Set-Location $Root
-& $Python -m uvicorn backend.api.server:app --host 127.0.0.1 --port 8765 --reload
+& $Python -m uvicorn backend.api.server:app --host 0.0.0.0 --port 8765 --reload

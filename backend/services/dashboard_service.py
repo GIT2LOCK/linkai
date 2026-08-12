@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
-from typing import Any
 
 from lumina_bot.config import PROJECT_ROOT
 
 from backend.models.ui import DashboardMetrics
+from backend.services.processing_ui_registry import ProcessingUiRegistry
 
 
 class DashboardService:
@@ -18,48 +17,55 @@ class DashboardService:
     def __init__(self, project_root: Path = PROJECT_ROOT) -> None:
         self._root = project_root
         self._output = self._root / "output"
+        self._registry = ProcessingUiRegistry(project_root)
 
     def metrics(self) -> DashboardMetrics:
         """Return current dashboard metrics."""
-        pdfs = list((self._output / "pdfs").rglob("*.pdf"))
+        registered_files = self._registry.list_files()
         spreadsheets = list((self._output / "excel").glob("*.xlsx"))
-        state = self._load_processing_state()
-        records = list(state.values())
-        success = [record for record in records if record.get("status") == "success"]
-        errors = [record for record in records if record.get("status") == "error"]
-        last_record = self._last_record(records)
+        history = self._registry.list_history()
+        success = [
+            record
+            for record in registered_files
+            if record.get("status") in {"success", "available"}
+        ]
+        errors = [record for record in registered_files if record.get("status") == "error"]
+        elapsed_values = [
+            float(record.get("elapsedSeconds") or 0)
+            for record in history
+            if float(record.get("elapsedSeconds") or 0) > 0
+        ]
 
         return DashboardMetrics(
-            pdf_count=len(pdfs),
+            pdf_count=len(registered_files),
             processed_count=len(success),
             error_count=len(errors),
             spreadsheet_count=len(spreadsheets),
-            last_processing=last_record.get("processed_at") if last_record else None,
-            last_sync=last_record.get("processed_at") if last_record else None,
-            average_time_seconds=None,
+            last_processing=history[0].get("processedAt") if history else None,
+            last_sync=history[0].get("processedAt") if history else None,
+            average_time_seconds=(
+                sum(elapsed_values) / len(elapsed_values) if elapsed_values else None
+            ),
             supabase_status=self._supabase_status(),
-            used_space_bytes=sum(path.stat().st_size for path in pdfs if path.is_file()),
+            used_space_bytes=self._used_space_bytes(registered_files),
         )
 
-    def _load_processing_state(self) -> dict[str, dict[str, Any]]:
-        state_path = self._output / "temp" / "processing_state.json"
-
-        if not state_path.is_file():
-            return {}
-
-        try:
-            return json.loads(state_path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError:
-            return {}
-
     @staticmethod
-    def _last_record(records: list[dict[str, Any]]) -> dict[str, Any] | None:
-        dated = [record for record in records if record.get("processed_at")]
+    def _used_space_bytes(records: list[dict[str, object]]) -> int:
+        total = 0
 
-        if not dated:
-            return None
+        for record in records:
+            path = record.get("path")
 
-        return max(dated, key=lambda record: str(record.get("processed_at")))
+            if not path:
+                continue
+
+            file_path = Path(str(path))
+
+            if file_path.is_file():
+                total += file_path.stat().st_size
+
+        return total
 
     @staticmethod
     def _supabase_status() -> str:

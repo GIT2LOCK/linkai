@@ -1,64 +1,100 @@
-import { useMemo, useState } from 'react';
+import { Suspense, lazy, useMemo, useState } from "react";
 import {
   Bot,
   Cloud,
   FileArchive,
   FileSpreadsheet,
   Files,
-  Home,
+  House,
   LineChart,
   Play,
   ScrollText,
-  Settings
-} from 'lucide-react';
-import { AppShell } from './layouts/AppShell';
-import { HomePage } from './pages/HomePage';
-import { ProcessPdfsPage } from './pages/ProcessPdfsPage';
-import { LaunchNotesPage } from './pages/LaunchNotesPage';
-import { SpreadsheetsPage } from './pages/SpreadsheetsPage';
-import { SupabasePage } from './pages/SupabasePage';
-import { FilesPage } from './pages/FilesPage';
-import { AiPage } from './pages/AiPage';
-import { HistoryPage } from './pages/HistoryPage';
-import { SettingsPage } from './pages/SettingsPage';
-import { LogsPage } from './pages/LogsPage';
-import type { NavigationItem, PageKey } from './types/navigation';
+  Settings,
+} from "lucide-react";
+
+import { AppShell } from "./layouts/AppShell";
+import type { NavigationItem, PageKey } from "./types/navigation";
+
+const HomePage = lazy(() =>
+  import("./pages/HomePage").then((module) => ({ default: module.HomePage })),
+);
+const ProcessPdfsPage = lazy(() =>
+  import("./pages/ProcessPdfsPage").then((module) => ({ default: module.ProcessPdfsPage })),
+);
+const LaunchNotesPage = lazy(() =>
+  import("./pages/LaunchNotesPage").then((module) => ({ default: module.LaunchNotesPage })),
+);
+const SpreadsheetsPage = lazy(() =>
+  import("./pages/SpreadsheetsPage").then((module) => ({ default: module.SpreadsheetsPage })),
+);
+const CloudPage = lazy(() =>
+  import("./pages/CloudPage").then((module) => ({ default: module.CloudPage })),
+);
+const FilesPage = lazy(() =>
+  import("./pages/FilesPage").then((module) => ({ default: module.FilesPage })),
+);
+const AiPage = lazy(() => import("./pages/AiPage").then((module) => ({ default: module.AiPage })));
+const HistoryPage = lazy(() =>
+  import("./pages/HistoryPage").then((module) => ({ default: module.HistoryPage })),
+);
+const SettingsPage = lazy(() =>
+  import("./pages/SettingsPage").then((module) => ({ default: module.SettingsPage })),
+);
+const LogsPage = lazy(() =>
+  import("./pages/LogsPage").then((module) => ({ default: module.LogsPage })),
+);
+
+export interface LuminaSessionUser {
+  nome: string;
+  email: string | null;
+  permissao: string | null;
+  avatarUrl: string | null;
+}
+
+const localUser: LuminaSessionUser = {
+  nome: "Ewerton Melo",
+  email: null,
+  permissao: "Superadmin",
+  avatarUrl: null,
+};
 
 const navigation: NavigationItem[] = [
-  { key: 'home', label: 'Página Inicial', icon: Home },
-  { key: 'processar-pdfs', label: 'Processar PDFs', icon: FileArchive },
-  { key: 'lancar-notas', label: 'Lançar Notas', icon: Play },
-  { key: 'planilhas', label: 'Planilhas', icon: FileSpreadsheet },
-  { key: 'supabase', label: 'Supabase', icon: Cloud },
-  { key: 'arquivos', label: 'Arquivos', icon: Files },
-  { key: 'ia', label: 'Inteligência Artificial', icon: Bot },
-  { key: 'historico', label: 'Histórico', icon: ScrollText },
-  { key: 'configuracoes', label: 'Configurações', icon: Settings },
-  { key: 'logs', label: 'Logs', icon: LineChart }
+  { group: "Operação", key: "home", label: "Início", icon: House },
+  { group: "Operação", key: "processar-pdfs", label: "Processar PDFs", icon: FileArchive },
+  { group: "Operação", key: "lancar-notas", label: "Lançar Notas", icon: Play },
+  { group: "Operação", key: "ia", label: "Inteligência Artificial", icon: Bot },
+  { group: "Dados", key: "planilhas", label: "Planilhas", icon: FileSpreadsheet },
+  { group: "Dados", key: "supabase", label: "Nuvem", icon: Cloud },
+  { group: "Dados", key: "arquivos", label: "Arquivos", icon: Files },
+  { group: "Sistema", key: "historico", label: "Histórico", icon: ScrollText },
+  { group: "Sistema", key: "logs", label: "Logs", icon: LineChart },
+  { group: "Sistema", key: "configuracoes", label: "Configurações", icon: Settings },
 ];
 
 export function App() {
-  const [activePage, setActivePage] = useState<PageKey>('home');
+  const [activePage, setActivePage] = useState<PageKey>("home");
 
   const page = useMemo(() => {
     switch (activePage) {
-      case 'processar-pdfs':
+      case "home":
+        return <HomePage />;
+      case "processar-pdfs":
         return <ProcessPdfsPage />;
-      case 'lancar-notas':
+      case "lancar-notas":
         return <LaunchNotesPage />;
-      case 'planilhas':
+      case "planilhas":
         return <SpreadsheetsPage />;
-      case 'supabase':
-        return <SupabasePage />;
-      case 'arquivos':
+      case "supabase":
+        return <CloudPage />;
+      case "arquivos":
         return <FilesPage />;
-      case 'ia':
+      case "ia":
         return <AiPage />;
-      case 'historico':
+      case "historico":
         return <HistoryPage />;
-      case 'configuracoes':
+      case "configuracoes":
         return <SettingsPage />;
-      case 'logs':
+      case "logs":
         return <LogsPage />;
       default:
         return <HomePage />;
@@ -70,8 +106,9 @@ export function App() {
       activePage={activePage}
       navigation={navigation}
       onNavigate={setActivePage}
+      user={localUser}
     >
-      {page}
+      <Suspense fallback={<div className="loading-panel">Carregando...</div>}>{page}</Suspense>
     </AppShell>
   );
 }

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode } from "react";
 
 export interface DataTableColumn {
   key: string;
@@ -12,41 +12,67 @@ interface DataTableProps {
   emptyLabel: string;
 }
 
-export function DataTable({
-  columns,
-  rows,
-  emptyLabel
-}: DataTableProps) {
+export function DataTable({ columns, rows, emptyLabel }: DataTableProps) {
   return (
     <div className="table-shell">
-      <table>
-        <thead>
-          <tr>
-            {columns.map((column) => (
-              <th key={String(column.key)}>{column.label}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length === 0 ? (
+      <div className="table-scroll">
+        <table>
+          <thead>
             <tr>
-              <td className="empty-cell" colSpan={columns.length}>
-                {emptyLabel}
-              </td>
+              {columns.map((column) => (
+                <th key={String(column.key)}>{column.label}</th>
+              ))}
             </tr>
-          ) : (
-            rows.map((row, rowIndex) => (
-              <tr key={rowIndex}>
-                {columns.map((column) => (
-                  <td key={String(column.key)}>
-                    {column.render ? column.render(row) : String(row[column.key] ?? '')}
-                  </td>
-                ))}
+          </thead>
+          <tbody>
+            {rows.length === 0 ? (
+              <tr>
+                <td className="empty-cell" colSpan={columns.length}>
+                  {emptyLabel}
+                </td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            ) : (
+              rows.map((row, rowIndex) => (
+                <tr key={rowIndex}>
+                  {columns.map((column) => (
+                    <td data-column={column.key} key={String(column.key)}>
+                      {renderCell(column, row)}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+      <div className="table-footer" aria-live="polite">
+        {rows.length === 1 ? "1 registro" : `${rows.length} registros`}
+      </div>
     </div>
+  );
+}
+
+function renderCell(column: DataTableColumn, row: Record<string, unknown>) {
+  if (column.render) {
+    return column.render(row);
+  }
+
+  const value = String(row[column.key] ?? "");
+
+  if (column.key !== "status" || !value) {
+    return value;
+  }
+
+  const normalizedStatus = value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-");
+
+  return (
+    <span className={`status-badge status-${normalizedStatus}`}>
+      <span aria-hidden="true" />
+      {value}
+    </span>
   );
 }

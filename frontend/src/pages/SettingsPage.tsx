@@ -1,11 +1,12 @@
-import { SectionHeader } from '../components/SectionHeader';
+import { SectionHeader } from "../components/SectionHeader";
 
 export function SettingsPage() {
   return (
     <div className="page-stack">
       <SectionHeader
+        eyebrow="Sistema"
         title="Configurações"
-        description="Supabase, OCR, IA, Excel, pastas padrão, Lumina, tema e idioma."
+        description="Nuvem, OCR, IA, Excel, pastas padrão, Lumina, tema e idioma."
       />
       <div className="settings-grid">
         <div className="content-band">
