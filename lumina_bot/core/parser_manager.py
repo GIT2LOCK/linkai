@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from lumina_bot.core.storage import StorageService
 from lumina_bot.core.document_detector import (
     DocumentDetection,
     DocumentDetector,
@@ -49,8 +50,8 @@ class ParserManager:
         xml_text: str | None = None,
         xml_local_path: Path | None = None,
     ) -> NotaFiscal:
-        """Detect and parse a PDF result into a NotaFiscal object."""
-        detection = self.detect(pdf)
+        """Detect and parse a PDF/XML result into a NotaFiscal object."""
+        detection = self.detect(pdf, xml_text=xml_text)
         parser = self._parsers.get(
             detection.document_type,
             self._parsers[DocumentType.DESCONHECIDO],
@@ -73,6 +74,40 @@ class ParserManager:
         )
         return parser.parse(context)
 
-    def detect(self, pdf: PdfReadResult) -> DocumentDetection:
-        """Detect document type from the PDF text."""
-        return self._detector.detect(pdf.text, pdf.path.name)
+    def parse_xml(
+        self,
+        xml_path: Path,
+        *,
+        remote_path: str | None = None,
+    ) -> NotaFiscal:
+        """Parse an XML document directly when no PDF is available."""
+        xml_text = xml_path.read_text(encoding="utf-8", errors="ignore")
+        stat = xml_path.stat()
+        pseudo_pdf = PdfReadResult(
+            path=xml_path,
+            text="",
+            page_count=0,
+            author=None,
+            creator=None,
+            producer=None,
+            size_bytes=stat.st_size,
+            sha256=StorageService.sha256_file(xml_path),
+            metadata={"source_format": "xml"},
+            ocr_required=False,
+        )
+        return self.parse(
+            pseudo_pdf,
+            remote_path=remote_path,
+            xml_text=xml_text,
+            xml_local_path=xml_path,
+        )
+
+    def detect(
+        self,
+        pdf: PdfReadResult,
+        *,
+        xml_text: str | None = None,
+    ) -> DocumentDetection:
+        """Detect document type from XML first and PDF text as fallback."""
+        signal_text = f"{xml_text or ''}\n{pdf.text}"
+        return self._detector.detect(signal_text, pdf.path.name)

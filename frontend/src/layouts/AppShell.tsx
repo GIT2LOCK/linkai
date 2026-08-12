@@ -1,6 +1,9 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Bell, Search, ShieldCheck, UserRound } from 'lucide-react';
 import linkaiIconUrl from '../assets/linkai-icon.png';
 import linkaiLogoUrl from '../assets/linkai-logo.png';
+import { callBackend } from '../services/backend';
+import type { OperatorProfile } from '../types/backend';
 import type { NavigationItem, PageKey } from '../types/navigation';
 
 interface AppShellProps {
@@ -17,6 +20,29 @@ export function AppShell({
   onNavigate
 }: AppShellProps) {
   const activeLabel = navigation.find((item) => item.key === activePage)?.label ?? 'Processar PDFs';
+  const [operator, setOperator] = useState<OperatorProfile>({
+    avatar_url: null,
+    email: null,
+    name: 'Operador',
+    role: 'LinkAI Desktop',
+    source: 'fallback'
+  });
+
+  useEffect(() => {
+    let mounted = true;
+
+    callBackend<OperatorProfile>('operator.profile')
+      .then((profile) => {
+        if (mounted) {
+          setOperator(profile);
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <div className="app-shell">
@@ -60,13 +86,40 @@ export function AppShell({
 
       <main className="main-panel">
         <header className="topbar">
-          <div>
+          <div className="topbar-greeting">
+            <img
+              src={operator.avatar_url || linkaiIconUrl}
+              alt=""
+              onError={(event) => {
+                event.currentTarget.src = linkaiIconUrl;
+              }}
+            />
+            <div>
+              <span className="eyebrow">{operator.role}</span>
+              <strong>{operator.name}</strong>
+            </div>
+          </div>
+
+          <label className="search-box" aria-label="Pesquisar no LinkAI">
+            <Search size={18} />
+            <input placeholder="Pesquisar" type="search" />
+          </label>
+
+          <div className="topbar-actions">
+            <button aria-label="Notificações" className="icon-button" type="button">
+              <Bell size={18} />
+            </button>
+            <button aria-label="Ambiente seguro" className="icon-button" type="button">
+              <ShieldCheck size={18} />
+            </button>
+            <button aria-label="Perfil" className="icon-button" type="button">
+              <UserRound size={18} />
+            </button>
+          </div>
+
+          <div className="topbar-title">
             <span className="eyebrow">Workspace</span>
             <h1>{activeLabel}</h1>
-          </div>
-          <div className="status-pill">
-            <span className="pulse" />
-            Serviços ativos
           </div>
         </header>
         <section className="page-surface">{children}</section>

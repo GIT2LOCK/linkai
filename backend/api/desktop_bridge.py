@@ -20,6 +20,7 @@ from backend.models.ui import ProcessingOptions
 from backend.services import (
     DashboardService,
     DocumentProcessingService,
+    OperatorService,
     SpreadsheetService,
 )
 from lumina_bot.config import get_supabase_config
@@ -35,9 +36,24 @@ class DesktopBridge:
             if action == "dashboard.metrics":
                 return success(DashboardService().metrics().to_dict())
 
+            if action == "operator.profile":
+                return success(OperatorService().profile().to_dict())
+
             if action == "documents.process":
                 options = ProcessingOptions.from_payload(payload)
                 return success(DocumentProcessingService().process(options))
+
+            if action == "documents.last":
+                return success(DocumentProcessingService().last_processing())
+
+            if action == "downloads.default_path":
+                return success(DocumentProcessingService().default_download_path())
+
+            if action == "files.list":
+                return success(DocumentProcessingService().list_files())
+
+            if action == "history.list":
+                return success(DocumentProcessingService().list_history())
 
             if action == "lumina.start":
                 return success(LuminaAutomationService().iniciar_lancamento())
