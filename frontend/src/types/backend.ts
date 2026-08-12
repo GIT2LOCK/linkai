@@ -76,6 +76,33 @@ export interface SpreadsheetInfo {
   modifiedAt: number;
 }
 
+export interface NoticiaConstrucao {
+  titulo: string;
+  resumo: string | null;
+  fonte: string;
+  url: string;
+  dataPublicacao: string | null;
+}
+
+export interface PontoIndicador {
+  valor: number;
+  dataReferencia: string;
+}
+
+export interface IndicadorConstrucao {
+  codigo: string;
+  nome: string;
+  valor: number;
+  unidade: string | null;
+  dataReferencia: string | null;
+  fonte: string | null;
+  variacao: number | null;
+  variacaoSufixo: '%' | 'p.p.' | null;
+  historico: PontoIndicador[];
+}
+
+export interface PainelIndicadores {
+  indicadores: IndicadorConstrucao[];
 export interface DefaultDownloadPathResponse {
   path: string;
 }

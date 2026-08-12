@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
   Bot,
+  Building2,
   Cloud,
   FileArchive,
   FileSpreadsheet,
@@ -17,6 +18,7 @@ import { SpreadsheetsPage } from './pages/SpreadsheetsPage';
 import { SupabasePage } from './pages/SupabasePage';
 import { FilesPage } from './pages/FilesPage';
 import { AiPage } from './pages/AiPage';
+import { ConstrucaoCivilPage } from './pages/ConstrucaoCivilPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { LogsPage } from './pages/LogsPage';
@@ -29,6 +31,7 @@ const navigation: NavigationItem[] = [
   { key: 'supabase', label: 'Supabase', icon: Cloud },
   { key: 'arquivos', label: 'Arquivos', icon: Files },
   { key: 'ia', label: 'Inteligência Artificial', icon: Bot },
+  { key: 'construcao-civil', label: 'Construção Civil', icon: Building2 },
   { key: 'historico', label: 'Histórico', icon: ScrollText },
   { key: 'configuracoes', label: 'Configurações', icon: Settings },
   { key: 'logs', label: 'Logs', icon: LineChart }
@@ -51,6 +54,8 @@ export function App() {
         return <FilesPage />;
       case 'ia':
         return <AiPage />;
+      case 'construcao-civil':
+        return <ConstrucaoCivilPage />;
       case 'historico':
         return <HistoryPage />;
       case 'configuracoes':
