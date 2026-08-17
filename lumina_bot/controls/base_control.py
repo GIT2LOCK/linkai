@@ -27,6 +27,7 @@ class ControlLocator:
 
     auto_id: str
     control_type: str
+    fallback_names: tuple[str, ...] = ()
 
     def as_kwargs(self) -> dict[str, str]:
         """Return pywinauto child_window criteria."""
@@ -34,6 +35,12 @@ class ControlLocator:
             "auto_id": self.auto_id,
             "control_type": self.control_type,
         }
+
+    def fallback_kwargs(self) -> tuple[dict[str, str], ...]:
+        """Return progressively broader criteria for vendor-specific controls."""
+        criteria: list[dict[str, str]] = [{"auto_id": self.auto_id}]
+        criteria.extend({"title": name} for name in self.fallback_names)
+        return tuple(criteria)
 
     @property
     def description(self) -> str:
@@ -51,10 +58,16 @@ class BaseControl:
         window: WindowSpecification,
         auto_id: str,
         config: AppConfig = DEFAULT_CONFIG,
+        *,
+        fallback_names: tuple[str, ...] = (),
     ) -> None:
         self._window = window
         self._config = config
-        self.locator = ControlLocator(auto_id=auto_id, control_type=self.control_type)
+        self.locator = ControlLocator(
+            auto_id=auto_id,
+            control_type=self.control_type,
+            fallback_names=fallback_names,
+        )
         self._logger = get_logger(f"controls.{self.__class__.__name__}")
 
     @property
@@ -148,7 +161,32 @@ class BaseControl:
             raise ElementInteractionError(f"Could not focus {self}.") from exc
 
     def _spec(self) -> WindowSpecification:
-        return self._window.child_window(**self.locator.as_kwargs())
+        primary = self._window.child_window(**self.locator.as_kwargs())
+
+        # DevExpress exposes the same AutomationId with different control
+        # types depending on whether pywinauto is connected through UIA or
+        # win32. Keep the stable id as the source of truth and only broaden
+        # the locator when the typed lookup is unavailable.
+        try:
+            if primary.exists(timeout=0):
+                return primary
+        except Exception:
+            pass
+
+        for criteria in self.locator.fallback_kwargs():
+            try:
+                candidate = self._window.child_window(**criteria)
+                if candidate.exists(timeout=0):
+                    self._logger.debug(
+                        "Using fallback locator for %s: %s",
+                        self.locator.description,
+                        criteria,
+                    )
+                    return candidate
+            except Exception:
+                continue
+
+        return primary
 
     def _wrapper(self) -> UIAWrapper:
         return self._spec().wrapper_object()
