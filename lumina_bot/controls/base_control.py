@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import ClassVar, Self
+from typing import Any, ClassVar, Self
 
 from pywinauto.application import WindowSpecification
-from pywinauto.controls.uiawrapper import UIAWrapper
 
 from lumina_bot.config import AppConfig, DEFAULT_CONFIG
 from lumina_bot.core.logger import get_logger
@@ -88,7 +87,7 @@ class BaseControl:
         """Wait until the control exists."""
         self._logger.info("Waiting %s...", self.locator.description)
         wait_exists(
-            lambda: self._spec().exists(timeout=0),
+            lambda: self._resolve_wrapper() is not None,
             timeout=self._timeout(timeout),
             retry_interval=self._config.retry_interval,
             control_name=self.locator.description,
@@ -128,7 +127,7 @@ class BaseControl:
         )
         return self
 
-    def wrapper(self, timeout: float | None = None) -> UIAWrapper:
+    def wrapper(self, timeout: float | None = None) -> Any:
         """Return the pywinauto wrapper after ensuring the control exists."""
         self.wait_exists(timeout=timeout)
         return self._wrapper()
@@ -188,8 +187,53 @@ class BaseControl:
 
         return primary
 
-    def _wrapper(self) -> UIAWrapper:
-        return self._spec().wrapper_object()
+    def _wrapper(self) -> Any:
+        wrapper = self._resolve_wrapper()
+        if wrapper is None:
+            return self._spec().wrapper_object()
+        return wrapper
+
+    def _resolve_wrapper(self) -> Any | None:
+        """Resolve the actual descendant wrapper by AutomationId.
+
+        DevExpress can expose a different control type for the same field
+        across UIA and win32. The inspection script uses the window's
+        descendant tree successfully, so use that tree as the authoritative
+        lookup and retain ``child_window`` as a final compatibility fallback.
+        """
+        try:
+            root = self._window.wrapper_object()
+            descendants = root.descendants()
+        except Exception as exc:
+            self._logger.debug(
+                "Could not enumerate descendants for %s: %s",
+                self.locator.description,
+                exc,
+            )
+            return None
+
+        matches: list[Any] = []
+        for candidate in descendants:
+            info = getattr(candidate, "element_info", None)
+            candidate_id = str(getattr(info, "automation_id", "") or "")
+            if candidate_id == self.locator.auto_id:
+                matches.append(candidate)
+
+        if not matches:
+            return None
+
+        for candidate in matches:
+            info = getattr(candidate, "element_info", None)
+            candidate_type = str(getattr(info, "control_type", "") or "")
+            if candidate_type == self.locator.control_type:
+                return candidate
+
+        # The ID is stable even when the vendor-specific control type is not.
+        self._logger.debug(
+            "Resolved %s by AutomationId with vendor-specific control type.",
+            self.locator.description,
+        )
+        return matches[0]
 
     def _is_ready(self) -> bool:
         wrapper = self._wrapper()
