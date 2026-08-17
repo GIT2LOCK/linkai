@@ -1,600 +1,259 @@
-# LinkAI
+<p align="center">
+  <img src="frontend/src/assets/linkai-logo-light.png" alt="LINKAI Engenharia" width="620" />
+</p>
 
-LinkAI é uma plataforma desktop para automação do ERP Lumina e processamento inteligente de notas fiscais. O projeto une backend Python, automação Windows com PyWinAuto, processamento de documentos fiscais, integração com bucket privado do Supabase e uma interface desktop moderna construída com React, TypeScript, Vite e Tauri.
+<h1 align="center">LINKAI</h1>
 
-O objetivo do projeto é manter a automação existente do Lumina preservada e transformá-la em uma das funcionalidades de um software maior, modular e preparado para crescimento.
+<p align="center">
+  Automação fiscal, processamento inteligente de documentos e operação conectada para a construção civil.
+</p>
 
-## Status Atual
+<p align="center">
+  <a href="https://linkai.2lock.app.br">Aplicação publicada</a>
+  ·
+  <a href="https://github.com/GIT2LOCK/linkai">Repositório</a>
+</p>
 
-O projeto contém:
+<p align="center">
+  <img src="https://img.shields.io/badge/React-19-111720?style=flat-square&logo=react&logoColor=F4F6FA&labelColor=E72C50" alt="React 19" />
+  <img src="https://img.shields.io/badge/TypeScript-5.8-111720?style=flat-square&logo=typescript&logoColor=F4F6FA&labelColor=E72C50" alt="TypeScript 5.8" />
+  <img src="https://img.shields.io/badge/FastAPI-Python-111720?style=flat-square&logo=fastapi&logoColor=F4F6FA&labelColor=E72C50" alt="FastAPI e Python" />
+  <img src="https://img.shields.io/badge/Tauri-desktop-111720?style=flat-square&logo=tauri&logoColor=F4F6FA&labelColor=E72C50" alt="Tauri" />
+</p>
 
-- Automação desktop do Lumina com Python e `pywinauto` usando `backend="uia"`.
-- Login automático no Lumina sob demanda.
-- Backend Python desacoplado da interface.
-- API local em FastAPI para desenvolvimento web.
-- Bridge de comandos preparada para Tauri.
-- Frontend React + TypeScript + Vite.
-- Estrutura Tauri para empacotamento desktop leve.
-- Integração com Supabase Storage privado usando `SERVICE_ROLE_KEY`.
-- Leitura de PDFs com PyMuPDF e fallback arquitetural para OCR.
-- Parser fiscal com Strategy Pattern.
-- Escrita de planilhas Excel com Pandas/OpenPyXL.
-- Estrutura preparada para logs, screenshots, outputs e cache.
+## Visão geral
 
-## Tecnologias
+O LINKAI é uma plataforma empresarial da LINKAI Engenharia para organizar rotinas fiscais e reduzir trabalho manual na operação de documentos. O projeto combina uma interface React/Tauri, um serviço Python de processamento e integrações com armazenamento em nuvem e o ERP Lumina.
 
-### Backend
+O sistema mantém uma separação clara entre as responsabilidades:
 
-- Python 3.12+
-- PyWinAuto
-- FastAPI
-- Uvicorn
-- Supabase Python SDK
-- python-dotenv
-- PyMuPDF
-- pdfplumber
-- pandas
-- openpyxl
-- rapidfuzz
-- tqdm
+- **Processar PDFs:** leitura, identificação do layout fiscal e geração de XML normalizado.
+- **Excel opcional:** exportação estruturada somente quando o usuário solicitar.
+- **Nuvem:** seleção e processamento de documentos armazenados em bucket privado.
+- **Lançar Notas:** automação do ERP Lumina sob demanda.
+- **Notícias e indicadores:** acompanhamento diário de informações relevantes para a construção civil.
+- **Operação:** histórico, logs, arquivos, planilhas, configurações e inteligência artificial.
 
-### Frontend
+> O processamento de PDFs e a geração de XML não dependem do Lumina. A automação do Lumina é usada apenas nos fluxos que precisam interagir com o ERP.
 
-- React
-- TypeScript
-- Vite
-- Tauri
-- Lucide React
-- Plus Jakarta Sans
+## Produto em uso
 
-## Estrutura do Projeto
+### Notícias e indicadores
 
-```text
-linkai/
-|-- backend/
-|   |-- api/
-|   |   |-- desktop_bridge.py
-|   |   `-- server.py
-|   |-- automation/
-|   |   `-- lumina_service.py
-|   |-- core/
-|   |-- models/
-|   |-- services/
-|   |-- storage/
-|   `-- utils/
-|
-|-- frontend/
-|   |-- src/
-|   |   |-- assets/
-|   |   |-- components/
-|   |   |-- hooks/
-|   |   |-- layouts/
-|   |   |-- pages/
-|   |   |-- services/
-|   |   |-- styles/
-|   |   `-- types/
-|   |-- src-tauri/
-|   |-- package.json
-|   `-- vite.config.ts
-|
-|-- lumina_bot/
-|   |-- controls/
-|   |-- core/
-|   |-- exceptions/
-|   |-- logs/
-|   |-- models/
-|   |-- output/
-|   |-- pages/
-|   |-- parsers/
-|   |-- screenshots/
-|   |-- config.py
-|   |-- main.py
-|   |-- requirements.txt
-|   `-- .env.example
-|
-|-- scripts/
-|   `-- dev.py
-|-- run-linkai-web.ps1
-|-- stop-linkai-web.ps1
-`-- README.md
-```
+<p align="center">
+  <img src="docs/screenshots/home-news-and-market.png" alt="Página inicial com notícias e indicadores de mercado" width="100%" />
+</p>
+
+### Processamento fiscal
+
+<p align="center">
+  <img src="docs/screenshots/process-pdfs.png" alt="Tela de processamento de PDFs" width="100%" />
+</p>
+
+## Capacidades principais
+
+### Documentos fiscais
+
+- Seleção de arquivos manuais, pastas locais ou documentos na nuvem.
+- Leitura de PDFs com PyMuPDF e suporte arquitetural para OCR.
+- Detecção determinística do layout antes da escolha do parser.
+- Parsers especializados para NFS-e de São Paulo e NF-e DANFE modelo 55.
+- Preservação de itens, tributos, parcelas, totais, validações e metadados de origem.
+- Cache, hash SHA-256, prevenção de duplicidade e processamento de subpastas.
+
+### XML e Excel
+
+- O PDF é convertido sempre para XML normalizado no formato `linkai.documento-fiscal.v1`.
+- Esse XML é um formato interno estruturado do LINKAI; ele não substitui o XML oficial autorizado pela SEFAZ.
+- A geração de Excel é opcional e pode ser ativada pelo usuário.
+- A exportação organiza documentos, itens, parcelas, tributos e validações em abas próprias.
+- No ambiente web, o arquivo é entregue para download no navegador do usuário.
+
+### Automação Lumina
+
+- Execução somente mediante ação explícita do usuário.
+- Serviço Python desacoplado da interface React.
+- Comunicação por API FastAPI quando o processamento estiver hospedado em outra máquina.
+- Execução local e suporte a serviço publicado na rede.
+
+## Identidade visual
+
+O produto usa uma linguagem escura, técnica e discreta, com profundidade neumórfica controlada e glassmorphism apenas em superfícies estratégicas.
+
+| Token | Valor | Uso |
+| --- | --- | --- |
+| Fundo principal | `#080B11` | Área de trabalho |
+| Sidebar | `#0D1119` | Navegação lateral |
+| Superfície | `#111720` | Cards e painéis |
+| Superfície elevada | `#161D27` | Controles e áreas de destaque |
+| Texto principal | `#F4F6FA` | Títulos e dados importantes |
+| Texto secundário | `#A0A8B5` | Descrições e informações auxiliares |
+| Destaque LINKAI | `#E72C50` | Ações e estados ativos |
+| Destaque claro | `#FF3B62` | Hover, foco e realces |
+| Sucesso | `#42D886` | Processamento concluído |
+
+Assets oficiais:
+
+- `frontend/src/assets/linkai-logo.png` para superfícies escuras.
+- `frontend/src/assets/linkai-logo-light.png` para superfícies claras.
+- `frontend/src/assets/linkai-icon.png` para usos compactos.
 
 ## Arquitetura
 
-O LinkAI está dividido em três camadas principais.
-
-### 1. `lumina_bot`
-
-Contém o núcleo original da automação Windows e o processamento fiscal.
-
-Responsabilidades:
-
-- Abrir ou conectar ao Lumina.
-- Localizar a janela principal.
-- Executar ações de tela com `pywinauto`.
-- Representar telas com padrão semelhante ao Page Object Model.
-- Efetuar login no Lumina.
-- Conectar ao Supabase.
-- Listar, baixar e processar documentos fiscais.
-- Ler PDFs.
-- Detectar tipo de documento fiscal.
-- Aplicar parsers.
-- Gerar planilhas Excel.
-- Registrar logs.
-
-### 2. `backend`
-
-Camada de serviços desacoplada da interface.
-
-Responsabilidades:
-
-- Expor comandos internos para a interface.
-- Orquestrar automação Lumina.
-- Orquestrar processamento de PDFs.
-- Listar planilhas geradas.
-- Ler logs.
-- Testar conexão com Supabase.
-- Servir uma API local em ambiente web de desenvolvimento.
-
-### 3. `frontend`
-
-Interface desktop/web do LinkAI.
-
-Responsabilidades:
-
-- Processamento de PDFs.
-- Lançamento de notas no Lumina.
-- Planilhas geradas.
-- Configuração e teste do Supabase.
-- Arquivos locais.
-- IA.
-- Histórico.
-- Logs.
-- Configurações.
-
-O frontend não contém regras de negócio. Ele chama o backend via bridge local.
-
-## Fluxos Principais
-
-### Lançamento de Notas no Lumina
-
 ```text
-Usuário clica em "Iniciar lançamento"
-↓
-Frontend chama o backend
-↓
-Backend executa LuminaAutomationService
-↓
-Application abre ou conecta ao Lumina
-↓
-LoginPage preenche usuário e senha
-↓
-Botão OK é acionado
+linkai/
+|-- backend/                  API FastAPI e serviços de integração
+|   |-- api/                  Endpoints web e bridge de comandos
+|   |-- models/               Contratos de entrada e saída
+|   `-- services/             Orquestração do processamento
+|
+|-- lumina_bot/               Dependências e núcleo fiscal Python
+|   |-- core/                 Leitor, detector, processador e writers
+|   |-- models/               Modelos fiscais normalizados
+|   |-- parsers/              Parsers especializados por layout
+|   `-- requirements.txt      Dependências Python
+|
+|-- frontend/                 Aplicação React, Vite e Tauri
+|   |-- src/assets/           Logo e identidade visual
+|   |-- src/components/       Componentes compartilhados
+|   |-- src/layouts/          Shell e navegação
+|   |-- src/pages/            Telas operacionais
+|   `-- src-tauri/            Empacotamento desktop
+|
+|-- docs/                     Documentação e capturas do produto
+|-- scripts/                  Utilitários de desenvolvimento
+|-- run-linkai-web.ps1        Inicialização local
+|-- stop-linkai-web.ps1       Parada dos serviços locais
+`-- README.md
 ```
 
-### Processamento de PDFs
+## Fluxo de processamento
 
 ```text
-Usuário escolhe origem dos PDFs
-↓
-Backend lista arquivos
-↓
-PDFs são lidos
-↓
-Documento é detectado
-↓
-Parser adequado é aplicado
-↓
-Objeto NotaFiscal é criado
-↓
-ExcelWriter gera planilha
-↓
-Resultado aparece na interface
+Usuário escolhe arquivos, pasta ou nuvem
+                ↓
+API recebe os documentos
+                ↓
+Leitor extrai texto e coordenadas do PDF
+                ↓
+Detector identifica o layout fiscal
+                ↓
+Parser especializado cria o modelo normalizado
+                ↓
+XML LinkAI é gerado sempre
+                ↓
+Excel é gerado somente se solicitado
+                ↓
+Resultado é disponibilizado na interface
 ```
 
-### Processamento via Supabase
+## API de processamento
 
-```text
-Supabase privado
-↓
-Listagem recursiva
-↓
-Download de PDFs
-↓
-Hash SHA256
-↓
-Cache local
-↓
-Leitura e parser
-↓
-Excel final em output/excel/notas.xlsx
-```
+O serviço FastAPI fica em `backend/api/server.py`:
+
+| Método | Endpoint | Finalidade |
+| --- | --- | --- |
+| `GET` | `/health` | Verificar disponibilidade |
+| `POST` | `/invoke` | Executar comandos da bridge |
+| `POST` | `/uploads/documents` | Processar documentos |
+| `POST` | `/uploads/pdfs` | Processar PDFs enviados |
+
+Em ambiente publicado, defina `LINKAI_PROCESSING_URL` com a URL pública do serviço. Prefira HTTPS quando a interface também estiver em HTTPS.
 
 ## Configuração
 
-Copie o arquivo de exemplo:
-
-```powershell
-Copy-Item lumina_bot\.env.example lumina_bot\.env
-```
-
-Preencha o arquivo `lumina_bot/.env` localmente.
-
-Exemplo:
+### Frontend
 
 ```env
-# Lumina
-LUMINA_USERNAME=
-LUMINA_PASSWORD=
-LUMINA_EXECUTABLE_PATH=C:\Lumina\Lumina.exe
-LUMINA_MAIN_WINDOW_TITLE_RE=.*Lumina.*
+VITE_SUPABASE_URL=https://seu-projeto.supabase.co
+VITE_SUPABASE_ANON_KEY=sua-chave-anonima
+LINKAI_PROCESSING_URL=https://seu-endereco-do-servico.example
+```
 
-# Supabase
-SUPABASE_URL=https://SEU-PROJETO.supabase.co
+### Backend
+
+```env
+SUPABASE_URL=https://seu-projeto.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=
 SUPABASE_BUCKET=
 SUPABASE_FOLDER=
-
-# Outputs
-PDF_DOWNLOAD_PATH=output/pdfs
-EXCEL_OUTPUT_PATH=output/excel/notas.xlsx
+LINKAI_ALLOWED_ORIGINS=https://seu-dominio.example
+LINKAI_PROCESSING_TOKEN=
+LINKAI_BRIDGE_TOKEN=
 ```
 
-Importante:
+Chaves administrativas, senhas e tokens pertencem somente ao backend. Nunca versionar valores reais em `.env` ou no código-fonte.
 
-- Nunca versionar `lumina_bot/.env`.
-- Nunca utilizar `ANON_KEY` para bucket privado.
-- Utilizar sempre `SUPABASE_SERVICE_ROLE_KEY`.
-- O arquivo `.env.example` é seguro para versionamento porque não contém segredos reais.
+## Desenvolvimento local
 
-## Instalação do Backend
-
-Crie o ambiente virtual dentro de `lumina_bot`:
-
-```powershell
-cd lumina_bot
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
-
-Volte para a raiz do projeto:
-
-```powershell
-cd ..
-```
-
-## Instalação do Frontend
+### Frontend web
 
 ```powershell
 cd frontend
 npm install
+npm run dev
+```
+
+### Serviço Python
+
+```powershell
+py -3.12 -m venv lumina_bot\.venv
+.\lumina_bot\.venv\Scripts\Activate.ps1
+python -m pip install -r backend\requirements.txt
+python -m uvicorn backend.api.server:app --host 127.0.0.1 --port 8765
+```
+
+Para acesso pela rede:
+
+```bash
+source lumina_bot/.venv/bin/activate
+python -m uvicorn backend.api.server:app --host 0.0.0.0 --port 8765
+```
+
+Verifique a API:
+
+```bash
+curl http://127.0.0.1:8765/health
+```
+
+Scripts auxiliares:
+
+```powershell
+.\run-linkai-web.ps1
+.\stop-linkai-web.ps1
+```
+
+## Build e testes
+
+```powershell
+cd frontend
+npm run build
+npm run lint
 cd ..
+
+python -m unittest discover -s tests -v
 ```
 
-## Executar em Desenvolvimento
+Os testes fiscais cobrem detecção de layout, NFS-e de São Paulo, NF-e DANFE modelo 55, itens, tributos, parcelas, validações e geração do XML normalizado.
 
-Na raiz do projeto:
+## Segurança operacional
 
-```powershell
-.\run-linkai-web.ps1
-```
+- Não versionar `.env`, tokens, senhas, chaves administrativas ou `SERVICE_ROLE_KEY`.
+- Usar a chave anônima somente no frontend quando necessário.
+- Manter a chave de serviço somente no backend.
+- Proteger endpoints de processamento com token quando expostos na rede.
+- Restringir CORS aos domínios autorizados em produção.
+- Usar HTTPS no domínio público da API.
+- Não salvar arquivos do usuário em diretórios públicos do servidor.
 
-Esse comando sobe:
+## Contribuição
 
-- API local em `http://127.0.0.1:8765`
-- Frontend web em `http://127.0.0.1:5173`
+1. Crie uma branch descritiva a partir de `main`.
+2. Faça alterações pequenas e relacionadas ao objetivo da tarefa.
+3. Execute build, lint e testes aplicáveis.
+4. Confira `git diff` e `git status --ignored` antes do commit.
+5. Nunca inclua credenciais, PDFs, planilhas ou logs no commit.
 
-Acesse:
+## Licença e propriedade
 
-```text
-http://127.0.0.1:5173
-```
-
-Para parar:
-
-```powershell
-.\stop-linkai-web.ps1
-```
-
-## Verificar Ambiente
-
-```powershell
-.\lumina_bot\.venv\Scripts\python.exe .\scripts\dev.py --check
-```
-
-O comando valida:
-
-- Python do venv.
-- `npm`.
-- Diretório do frontend.
-- Estrutura necessária para ambiente de desenvolvimento.
-
-## Executar Automação Lumina Diretamente
-
-Também é possível executar o fluxo Python diretamente:
-
-```powershell
-.\lumina_bot\.venv\Scripts\python.exe -m lumina_bot.main
-```
-
-Esse fluxo:
-
-1. Carrega `.env`.
-2. Abre ou conecta ao Lumina.
-3. Aguarda carregamento.
-4. Preenche login.
-5. Processa documentos do Supabase.
-
-## Executar Frontend Manualmente
-
-Terminal 1:
-
-```powershell
-.\lumina_bot\.venv\Scripts\python.exe -m uvicorn backend.api.server:app --host 127.0.0.1 --port 8765 --reload
-```
-
-Terminal 2:
-
-```powershell
-cd frontend
-npm run dev:web
-```
-
-## Build do Frontend
-
-```powershell
-cd frontend
-npm run build
-```
-
-## Tauri
-
-Para rodar com Tauri em desenvolvimento:
-
-```powershell
-cd frontend
-npm run tauri:dev
-```
-
-Para build desktop:
-
-```powershell
-cd frontend
-npm run tauri build
-```
-
-Observação: o empacotamento Tauri pode exigir toolchain Rust configurado no Windows.
-
-## Interface
-
-A interface atual possui:
-
-- Tema escuro inspirado no login oficial do LinkAI.
-- Glassmorphism sutil.
-- Paleta preta, cinza e rosa.
-- Logo oficial da LinkAI.
-- Menu lateral com navegação principal.
-- Telas para PDFs, Lumina, Planilhas, Supabase, Arquivos, IA, Histórico, Configurações e Logs.
-
-## Telas
-
-### Processar PDFs
-
-Permite:
-
-- Buscar no bucket Supabase.
-- Selecionar pasta local.
-- Selecionar arquivos manuais.
-- Drag and drop.
-- Processar subpastas.
-- Gerar Excel.
-- Ignorar duplicados.
-- Utilizar cache.
-- Detectar XML futuramente.
-- Escolher modo de Excel.
-
-### Lançar Notas
-
-Executa a automação existente do Lumina somente quando o usuário clicar em iniciar.
-
-### Planilhas
-
-Lista planilhas geradas no output local.
-
-### Supabase
-
-Testa conexão com:
-
-- URL.
-- Bucket.
-- Pasta.
-- Quantidade de itens.
-
-### Logs
-
-Exibe eventos recentes do backend.
-
-## Supabase
-
-O cliente Supabase foi projetado como singleton para evitar múltiplas conexões desnecessárias.
-
-Operações preparadas:
-
-- `listar`
-- `listar_recursivamente`
-- `download`
-- `download_para_disco`
-- `download_em_memoria`
-- `upload`
-- `delete`
-- `exists`
-- `signed_url`
-
-O bucket é privado e deve utilizar apenas `SUPABASE_SERVICE_ROLE_KEY`.
-
-## Processamento Fiscal
-
-O módulo fiscal foi preparado para:
-
-- NF-e
-- NFS-e
-- NFC-e
-- CT-e
-- MDF-e
-- Boleto
-- Recibo
-- Documento desconhecido
-
-O parser usa Strategy Pattern:
-
-```text
-ParserManager
-↓
-DocumentDetector
-↓
-Parser específico
-↓
-NotaFiscal
-```
-
-Regex é usada apenas como fallback.
-
-## Modelos
-
-Os principais modelos estão em `lumina_bot/models`:
-
-- `NotaFiscal`
-- `Emitente`
-- `Tomador`
-- `Endereco`
-- `Tributos`
-- `Item`
-
-Todos utilizam `dataclasses` e type hints.
-
-## Excel
-
-A saída padrão é:
-
-```text
-lumina_bot/output/excel/notas.xlsx
-```
-
-O sistema suporta:
-
-- Uma planilha consolidada.
-- Uma aba única com todos os documentos.
-- Abas separadas por documento.
-- Uma planilha por PDF.
-
-## Logs e Outputs
-
-Pastas preparadas:
-
-```text
-lumina_bot/logs/
-lumina_bot/screenshots/
-lumina_bot/output/pdfs/
-lumina_bot/output/excel/
-lumina_bot/output/logs/
-lumina_bot/output/temp/
-```
-
-Arquivos gerados nessas pastas são ignorados pelo Git, exceto `.gitkeep`.
-
-## Segurança
-
-Este projeto foi configurado para não versionar:
-
-- `.env`
-- credenciais
-- logs
-- PDFs baixados
-- planilhas geradas
-- caches
-- builds
-- `node_modules`
-- `.venv`
-
-Antes de qualquer push:
-
-```powershell
-git status --ignored --short
-```
-
-Confirme que `lumina_bot/.env` aparece como ignorado.
-
-## Comandos Úteis
-
-```powershell
-# Validar ambiente
-.\lumina_bot\.venv\Scripts\python.exe .\scripts\dev.py --check
-
-# Rodar API + frontend
-.\run-linkai-web.ps1
-
-# Parar portas locais
-.\stop-linkai-web.ps1
-
-# Build frontend
-cd frontend
-npm run build
-
-# Rodar automação Python direta
-.\lumina_bot\.venv\Scripts\python.exe -m lumina_bot.main
-```
-
-## Git
-
-Repositório remoto:
-
-```text
-https://github.com/GIT2LOCK/linkai
-```
-
-Branch desta entrega:
-
-```text
-GPT-Luna
-```
-
-O nome solicitado foi `GPT Luna`, mas Git não aceita espaços em nomes de branch. Por isso a branch foi criada como `GPT-Luna`.
-
-## Roadmap Técnico
-
-Arquitetura preparada para evolução com:
-
-- OCR.
-- Tesseract.
-- OCRmyPDF.
-- Azure OCR.
-- Google Vision.
-- OpenAI.
-- Claude.
-- Gemini.
-- XML como fonte principal.
-- API REST completa.
-- Dashboard web.
-- Banco PostgreSQL.
-- Redis.
-- RabbitMQ.
-- Workers.
-- Processamento paralelo.
-- Sincronização incremental.
-- Múltiplos ERPs.
-- Google Drive.
-- OneDrive.
-- Dropbox.
-- Amazon S3.
-- Azure Blob.
-
-## Observações
-
-O backend não conhece a interface.
-
-O frontend não contém regra de negócio.
-
-A automação do Lumina permanece preservada dentro de `lumina_bot`.
-
-O LinkAI pode ser executado como aplicação web local durante desenvolvimento e também está preparado para empacotamento desktop com Tauri.
+Projeto privado da 2LOCK / LINKAI Engenharia. O código, a identidade visual e os fluxos de automação pertencem ao projeto e não devem ser redistribuídos sem autorização.
