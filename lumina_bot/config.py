@@ -296,7 +296,7 @@ class OperatorProfileConfig:
                 "avatar_url",
             ),
             fallback_name=os.getenv("OPERATOR_FALLBACK_NAME", "Operador"),
-            fallback_role=os.getenv("OPERATOR_FALLBACK_ROLE", "LinkAI Desktop"),
+            fallback_role=os.getenv("OPERATOR_FALLBACK_ROLE", "LinkAI Web"),
         )
 
 
