@@ -72,6 +72,7 @@ O sistema mantém uma separação clara entre as responsabilidades:
 ### Automação Lumina
 
 - Execução somente mediante ação explícita do usuário.
+- Fila distribuída no Supabase: a primeira máquina Windows livre reserva o próximo atendimento.
 - Serviço Python desacoplado da interface React.
 - Comunicação por API FastAPI quando o processamento estiver hospedado em outra máquina.
 - Execução local e suporte a serviço publicado na rede.
