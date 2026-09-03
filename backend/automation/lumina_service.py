@@ -26,7 +26,7 @@ class LuminaAutomationService:
         """Return True when this desktop worker is unavailable."""
         return cls._operation_lock.locked() or Application.has_lumina_window()
 
-    def iniciar_lancamento(self) -> dict[str, str]:
+    def iniciar_lancamento(self, credentials: LoginCredentials | None = None) -> dict[str, str]:
         """Open Lumina, log in, and return execution status."""
         if not self._operation_lock.acquire(blocking=False):
             return {
@@ -41,13 +41,13 @@ class LuminaAutomationService:
                     "message": "Este executor Lumina ja esta atendendo outro usuario.",
                 }
 
-            return self._run_login()
+            return self._run_login(credentials)
         finally:
             self._operation_lock.release()
 
-    def _run_login(self) -> dict[str, str]:
+    def _run_login(self, credentials: LoginCredentials | None = None) -> dict[str, str]:
         """Start Lumina and submit the configured login credentials."""
-        credentials = LoginCredentials.from_env()
+        credentials = credentials or LoginCredentials.from_env()
         app = Application()
 
         self._logger.info("Launching Lumina from desktop action...")

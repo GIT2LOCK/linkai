@@ -181,9 +181,17 @@ SUPABASE_FOLDER=
 LINKAI_ALLOWED_ORIGINS=https://seu-dominio.example
 LINKAI_PROCESSING_TOKEN=
 LINKAI_BRIDGE_TOKEN=
+LINKAI_LUMINA_CREDENTIALS_KEY=
 ```
 
 Chaves administrativas, senhas e tokens pertencem somente ao backend. Nunca versionar valores reais em `.env` ou no código-fonte.
+
+`LINKAI_LUMINA_CREDENTIALS_KEY` deve ser o mesmo segredo configurado no
+Lovable e nas máquinas Windows dos workers. Ele protege as senhas individuais
+do Lumina e nunca deve ser publicado no frontend, colocado em uma variável
+`VITE_*` ou versionado no Git. O usuário cadastra suas credenciais na primeira
+execução de **Iniciar lançamento**; a fila entrega as credenciais corretas ao
+worker responsável.
 
 ## Desenvolvimento local
 

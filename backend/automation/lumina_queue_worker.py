@@ -9,7 +9,12 @@ from typing import Any
 
 from supabase import Client, create_client
 
-from lumina_bot.config import get_supabase_connection_config
+from lumina_bot.config import (
+    ConfigurationError,
+    LoginCredentials,
+    decrypt_lumina_secret,
+    get_supabase_connection_config,
+)
 from lumina_bot.core.application import Application
 from lumina_bot.core.logger import configure_logging, get_logger
 
@@ -86,7 +91,8 @@ class LuminaQueueWorker:
         self._logger.info("Claimed Lumina job %s", job_id)
 
         try:
-            result = LuminaAutomationService().iniciar_lancamento()
+            credentials = self._load_job_credentials(job)
+            result = LuminaAutomationService().iniciar_lancamento(credentials)
             if result.get("status") == "busy":
                 self._release_job(job_id, result.get("message", "Executor ocupado."))
                 return
@@ -103,6 +109,38 @@ class LuminaQueueWorker:
         except Exception as exc:
             self._logger.exception("Lumina job %s failed.", job_id)
             self._finish_job(job_id, "failed", str(exc))
+
+    def _load_job_credentials(self, job: dict[str, Any]) -> LoginCredentials:
+        """Load and decrypt the credentials of the user who created the job."""
+        encryption_secret = os.getenv("LINKAI_LUMINA_CREDENTIALS_KEY")
+        if not encryption_secret:
+            raise ConfigurationError(
+                "LINKAI_LUMINA_CREDENTIALS_KEY não está configurada nesta máquina."
+            )
+
+        requested_by = str(job.get("requested_by") or "").strip()
+        if not requested_by:
+            raise ConfigurationError("A solicitação não possui o usuário responsável.")
+
+        response = (
+            self._client.table("usuarios")
+            .select("lumina_username, lumina_password_ciphertext, lumina_password_set")
+            .eq("auth_user_id", requested_by)
+            .single()
+            .execute()
+        )
+        row = response.data or {}
+        username = str(row.get("lumina_username") or "").strip()
+        ciphertext = str(row.get("lumina_password_ciphertext") or "").strip()
+        if row.get("lumina_password_set") is not True or not username or not ciphertext:
+            raise ConfigurationError(
+                "O usuário ainda não cadastrou o login do Lumina no Meu Perfil."
+            )
+
+        return LoginCredentials(
+            username=username,
+            password=decrypt_lumina_secret(ciphertext, encryption_secret),
+        )
 
     def _wait_until_lumina_is_released(self, job_id: str) -> None:
         while not self._stop_event.is_set():

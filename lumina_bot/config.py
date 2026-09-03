@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -10,6 +12,29 @@ from typing import Literal, Self
 from dotenv import load_dotenv
 
 from lumina_bot.exceptions import ConfigurationError
+
+
+def _decode_base64url(value: str) -> bytes:
+    """Decode URL-safe Base64 regardless of whether padding was stored."""
+    return base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+
+
+def decrypt_lumina_secret(ciphertext: str, secret: str) -> str:
+    """Decrypt a v1 credential produced by the LinkAI server."""
+    try:
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+        version, iv_encoded, tag_encoded, payload_encoded = ciphertext.split(":", 3)
+        if version != "v1":
+            raise ValueError("unsupported credential version")
+
+        iv = _decode_base64url(iv_encoded)
+        tag = _decode_base64url(tag_encoded)
+        payload = _decode_base64url(payload_encoded)
+        key = hashlib.sha256(secret.encode("utf-8")).digest()
+        return AESGCM(key).decrypt(iv, payload + tag, None).decode("utf-8")
+    except Exception as exc:
+        raise ConfigurationError("Não foi possível descriptografar a credencial do Lumina.") from exc
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent

@@ -19,12 +19,11 @@ As duas máquinas usam o mesmo projeto Supabase e a mesma chave de serviço. O i
 ```env
 SUPABASE_URL=https://seu-projeto.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=chave-de-servico
+LINKAI_LUMINA_CREDENTIALS_KEY=mesmo-segredo-do-Lovable
 LINKAI_WORKER_ID=lumina-maquina-01
 LINKAI_QUEUE_WORKER_ENABLED=true
 LINKAI_QUEUE_POLL_SECONDS=3
 LINKAI_QUEUE_LEASE_SECONDS=300
-LUMINA_USERNAME=usuario-do-lumina
-LUMINA_PASSWORD=senha-do-lumina
 LUMINA_EXECUTABLE_PATH=C:\caminho\para\900_Lumina.exe
 ```
 
@@ -66,4 +65,18 @@ A resposta deve conter `queue_worker.enabled=true`, o `worker_id` da máquina e 
 6. Se uma máquina cair, a reserva expira e outra pode assumir o item, respeitando o limite de tentativas.
 
 O endpoint antigo `lumina.start` continua disponível para compatibilidade, mas a tela atual de lançamento usa exclusivamente a fila.
+
+`LINKAI_LUMINA_CREDENTIALS_KEY` deve ser exatamente igual no ambiente seguro
+do Lovable e nas duas máquinas. Ela protege a senha Lumina individual de cada
+usuário. Nunca coloque esse valor no frontend, em uma variável `VITE_*` ou no
+Git. O usuário cadastra seu login Lumina na primeira utilização de **Iniciar
+lançamento**; depois, o estado fica disponível em **Meu Perfil**. A troca
+posterior é encaminhada ao suporte técnico pelo botão **Alterar login Lumina**.
+
+## 5. Ambiente publicado
+
+No ambiente seguro do Lovable, configure `LINKAI_LUMINA_CREDENTIALS_KEY` com
+um segredo aleatório forte. Use o mesmo valor nos arquivos `.env` das máquinas
+01 e 02. Reinicie a API/worker após alterar o `.env` para que o processo leia a
+nova configuração.
 
